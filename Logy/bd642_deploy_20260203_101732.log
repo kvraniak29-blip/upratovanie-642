@@ -1,12 +1,12 @@
 **********************
 PowerShell transcript start
-Start time: 20260203100501
+Start time: 20260203101732
 Username: NTBKRISTIAN\kikov
 RunAs User: NTBKRISTIAN\kikov
 Configuration Name: 
 Machine: NTBKRISTIAN (Microsoft Windows NT 10.0.26200.0)
 Host Application: C:\Program Files\PowerShell\7\pwsh.dll
-Process ID: 27864
+Process ID: 11576
 PSVersion: 7.5.4
 PSEdition: Core
 GitCommitId: 7.5.4
@@ -22,18 +22,3 @@ WSManStackVersion: 3.0
 [INFO] Kontrolujem nástroj: Firebase CLI ('firebase')...
 [INFO] Nástroj 'Firebase CLI ('firebase')' ("firebase") OK.
 [INFO] Git: zisťujem zmeny (git status --porcelain)...
-[INFO] Git: pridávam zmeny (git add -A)...
-
-[INFO] Git: vytváram commit: 'BD642 – automatický deploy 2026-02-03 10:05'...
-
-[INFO] Git: posielam na GitHub (git push)...
-
-[INFO] Git: push úspešný.
-[INFO] Firebase: deploy hostingu (firebase deploy --only hosting)...
-
-[INFO] Firebase: deploy úspešný.
-[INFO] === HOTOVO: PASS – GitHub + Firebase deploy prebehli úspešne. ===
-**********************
-PowerShell transcript end
-End time: 20260203100513
-**********************
