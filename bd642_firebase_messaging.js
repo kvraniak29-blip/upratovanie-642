@@ -1,11 +1,11 @@
-/* BD642 – Firebase Cloud Messaging integrácia
-   Tento súbor je generovaný skriptom. Ak ho upravuješ ručne, ber to do úvahy pri ďalších generovaniach.
-*/
+// bd642_firebase_messaging.js
+// Správa push upozornení + ukladanie FCM tokenu do Firestore
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-messaging.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-messaging.js";
+import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-// Firebase konfigurácia pre BD 642 – Upratovanie
+// Konfigurácia Firebase (z konzoly)
 const firebaseConfig = {
   apiKey: "AIzaSyDi9bmbWut2ph5emweyfOoa6FCF8xNUO8I",
   authDomain: "bd-642-26-upratovanie-d2851.firebaseapp.com",
@@ -16,76 +16,68 @@ const firebaseConfig = {
   measurementId: "G-1PB3714CD6"
 };
 
-// Verejný VAPID kľúč pre Web Push
-const vapidKey = "BHnnUHjr7ujW1Do0bJBbZqL8G9WmJsVmjE859krH6eS3uJ9YUSAex7cnjEJxATx2dXbcPN7Xv9zzppRDE4ZFWZw";
+// Verejný kľúč pre web push (VAPID)
+const verejnyVapidKluc = "BHnnUHjr7ujW1Do0bJBbZqL8G9WmJsVmjE859krH6eS3uJ9YUSAex7cnjEJxATx2dXbcPN7Xv9zzppRDE4ZFWZw";
 
-// Inicializácia Firebase aplikácie a Messaging
+// Inicializácia aplikácie
 const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+const sprava = getMessaging(app);
+const databaza = getFirestore(app);
 
-// Registrácia service workera pre FCM
-async function registerBD642ServiceWorker() {
-  if (!("serviceWorker" in navigator)) {
-    console.warn("BD642 FCM: Service Worker nie je podporovaný v tomto prehliadači.");
-    return null;
-  }
+// Pomocná funkcia – uloženie tokenu do Firestore
+async function ulozTokenDoFirestore(token) {
   try {
-    const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-    console.log("BD642 FCM: Service worker zaregistrovaný:", reg);
-    return reg;
-  } catch (err) {
-    console.error("BD642 FCM: Chyba pri registrácii service workera:", err);
-    return null;
+    // zbierka: "fcm_tokeny", dokument: podľa tokenu
+    const dokumentOdkaz = doc(databaza, "fcm_tokeny", token);
+
+    await setDoc(
+      dokumentOdkaz,
+      {
+        token: token,
+        vytvorene: serverTimestamp(),
+        // sem môžeš neskôr doplniť napr. meno rodiny / byt:
+        // pouzivatel: "Vranjak",
+      },
+      { merge: true }
+    );
+
+    console.log("FCM token uložený do Firestore.");
+  } catch (chyba) {
+    console.error("Chyba pri ukladaní tokenu do Firestore:", chyba);
   }
 }
 
-// Hlavná funkcia, ktorú volá HTML tlačidlo „Zapnúť push“
-async function BD642_ZapnutUpozornenia() {
+// Požiada o povolenie na upozornenia a získa/uloží token
+export async function inicializujUpozorneniaBD642() {
   try {
-    if (!("Notification" in window)) {
-      console.warn("BD642 FCM: Notifikácie nie sú podporované.");
-      return { ok: false, dovod: "NEPODPOROVANE" };
+    console.log("Žiadam o povolenie na upozornenia...");
+
+    const povolenie = await Notification.requestPermission();
+
+    if (povolenie !== "granted") {
+      console.warn("Upozornenia zamietnuté používateľom.");
+      return;
     }
 
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
-      console.warn("BD642 FCM: Notifikácie neboli povolené:", permission);
-      return { ok: false, dovod: "NEPOVOLENE" };
+    console.log("Povolenie udelené, získavam FCM token...");
+
+    const aktualnyToken = await getToken(sprava, {
+      vapidKey: verejnyVapidKluc
+    });
+
+    if (!aktualnyToken) {
+      console.warn("Token sa nepodarilo získať (pravdepodobne blokované).");
+      return;
     }
 
-    const reg = await registerBD642ServiceWorker();
-    if (!reg) {
-      return { ok: false, dovod: "SW_FAIL" };
-    }
-
-    let token;
-    try {
-      token = await getToken(messaging, {
-        vapidKey,
-        serviceWorkerRegistration: reg
-      });
-    } catch (errToken) {
-      console.error("BD642 FCM: Chyba pri získavaní tokenu:", errToken);
-      return { ok: false, dovod: "CHYBA", detail: String(errToken) };
-    }
-
-    if (!token) {
-      console.warn("BD642 FCM: Token sa nepodarilo získať");
-      return { ok: false, dovod: "TOKEN_EMPTY" };
-    }
-
-    console.log("BD642 FCM token:", token);
-    console.log("Tento token si ulož (napr. do DB alebo Firestore) – zatiaľ je len v konzole.");
-    return { ok: true, token };
-  } catch (err) {
-    console.error("BD642 FCM: Neočakávaná chyba:", err);
-    return { ok: false, dovod: "CHYBA", detail: String(err) };
+    console.log("FCM token:", aktualnyToken);
+    await ulozTokenDoFirestore(aktualnyToken);
+  } catch (chyba) {
+    console.error("Chyba pri inicializácii upozornení BD642:", chyba);
   }
 }
 
-// Foreground správy (keď je stránka otvorená)
-onMessage(messaging, (payload) => {
-  console.log("BD642 FCM – foreground správa:", payload);
+// Spracovanie správ, kým je stránka otvorená
+onMessage(sprava, (payload) => {
+  console.log("Prijatá správa na popredí:", payload);
 });
-
-window.BD642_ZapnutUpozornenia = BD642_ZapnutUpozornenia;

@@ -23,3 +23,19 @@ WSManStackVersion: 3.0
 [INFO]  Nástroj 'Git' ('git') OK.
 [INFO]  Nástroj 'Firebase CLI' ('firebase') OK.
 [INFO]  Git: zisťujem zmeny (git status --porcelain)...
+[INFO]  Git: nájdené zmeny, pridávam (git add -A)...
+
+[INFO]  Git: vytváram commit: 'BD642 – automatický deploy 2026-02-03 09:43'...
+
+[INFO]  Git: posielam na GitHub (git push)...
+
+[INFO]  Git: push úspešný.
+[INFO]  Firebase: deploy hostingu (firebase deploy --only hosting)...
+
+[INFO]  Firebase: deploy úspešný.
+
+[INFO]  === HOTOVO: PASS – GitHub + Firebase deploy prebehli úspešne. ===
+**********************
+PowerShell transcript end
+End time: 20260203094356
+**********************
