@@ -1436,7 +1436,7 @@
 
       const min = new Date(d0(b.start)); min.setHours(0,0,0,0);
       const max = new Date(d0(b.end)); max.setHours(23,59,59,999);
-      if(dt < min || dt > max){ alert("Dátum musí byť v rámci vybraného týždňa."); return; }
+      if(dt < min || dt > max){ if(!confirm("Dátum je mimo vybraného týždňa. Chceš pokračovať?")) return; }
 
       if(prefs.notifyEnabled==="on"){
         const ok = await ensureNotifyPermission();
@@ -1673,5 +1673,6 @@
   <!-- BD642_FCM_INJECT -->
 </body>
 </html>
+
 
 
