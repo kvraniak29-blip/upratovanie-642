@@ -1,107 +1,171 @@
 // bd642_firebase_messaging.js
-// Nastavenie Firebase pre Upratovací plánovač BD 642
+// Jednoduchý modul pre FCM + uloženie tokenu do Firestore (ak je k dispozícii)
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-messaging.js";
-import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+(function () {
+  "use strict";
 
-// Konfigurácia projektu (tá, čo si posielal)
-const firebaseConfig = {
-  apiKey: "AIzaSyDi9bmbWut2ph5emweyfOoa6FCF8xNUO8I",
-  authDomain: "bd-642-26-upratovanie-d2851.firebaseapp.com",
-  projectId: "bd-642-26-upratovanie-d2851",
-  storageBucket: "bd-642-26-upratovanie-d2851.firebasestorage.app",
-  messagingSenderId: "530262860262",
-  appId: "1:530262860262:web:ceef384f16e1a6f7e6f627",
-  measurementId: "G-1PB3714CD6"
-};
+  // --- Firebase config – TENTO NECHAJ TAK, ako si mi poslal ---
+  var firebaseConfig = {
+    apiKey: "AIzaSyDi9bmbWut2ph5emweyfOoa6FCF8xNUO8I",
+    authDomain: "bd-642-26-upratovanie-d2851.firebaseapp.com",
+    projectId: "bd-642-26-upratovanie-d2851",
+    storageBucket: "bd-642-26-upratovanie-d2851.firebasestorage.app",
+    messagingSenderId: "530262860262",
+    appId: "1:530262860262:web:ceef384f16e1a6f7e6f627",
+    measurementId: "G-1PB3714CD6"
+  };
 
-// Verejný VAPID kľúč (ten, čo si posielal)
-const vapidPublicKey = "BHnnUHjr7ujW1Do0bJBbZqL8G9WmJsVmjE859krH6eS3uJ9YUSAex7cnjEJxATx2dXbcPN7Xv9zzppRDE4ZFWZw";
+  var vapidPublicKey =
+    "BHnnUHjr7ujW1Do0bJBbZqL8G9WmJsVmjE859krH6eS3uJ9YUSAex7cnjEJxATx2dXbcPN7Xv9zzppRDE4ZFWZw";
 
-// Inicializácia aplikácie
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
-const db = getFirestore(app);
+  // --- Kontroly základov ---
 
-// Uloženie FCM tokenu do Firestore
-async function ulozTokenDoFirestore(token) {
+  if (typeof firebase === "undefined") {
+    console.error(
+      "BD642 FCM: objekt 'firebase' nie je dostupný – skontroluj includy v index.html."
+    );
+    window.BD642_FCM = { initFailed: "firebase_missing" };
+    return;
+  }
+
+  // Inicializácia aplikácie, ak ešte neprebehla
   try {
-    const docRef = doc(db, "fcm_tokens", token); // dokument bude mať ID = token
+    if (!firebase.apps || !firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+  } catch (e) {
+    console.error("BD642 FCM: chyba pri firebase.initializeApp", e);
+  }
 
-    await setDoc(
-      docRef,
-      {
-        token: token,
-        vytvorene: serverTimestamp(),
-        poslednaAktualizacia: serverTimestamp(),
-        prehliadac: window.navigator.userAgent || null,
-        jazyk: window.navigator.language || null,
-        zdroj: "upratovaci_planovac_bd642"
-      },
-      { merge: true }
+  var messaging = null;
+  try {
+    if (firebase.messaging) {
+      messaging = firebase.messaging();
+    } else {
+      console.error(
+        "BD642 FCM: firebase.messaging nie je k dispozícii – skontroluj firebase-messaging-compat.js v index.html."
+      );
+    }
+  } catch (e) {
+    console.error("BD642 FCM: chyba pri získaní firebase.messaging()", e);
+  }
+
+  // Firestore je voliteľný – ak knižnica nie je načítaná, len logujeme token
+  var db = null;
+  var fieldValue = null;
+
+  try {
+    if (firebase.firestore) {
+      db = firebase.firestore();
+      if (
+        firebase.firestore.FieldValue &&
+        typeof firebase.firestore.FieldValue.serverTimestamp === "function"
+      ) {
+        fieldValue = firebase.firestore.FieldValue;
+      }
+      console.log("BD642 FCM: Firestore inicializovaný.");
+    } else {
+      console.warn(
+        "BD642 FCM: firebase.firestore nie je k dispozícii – tokeny budú len v konzole."
+      );
+    }
+  } catch (e) {
+    console.error("BD642 FCM: chyba pri inicializácii Firestore", e);
+  }
+
+  // --- Pomocné funkcie ---
+
+  async function ulozTokenDoFirestore(token) {
+    console.log("BD642 FCM token:", token);
+    console.log(
+      "Tento token si ulož (napr. do databázy/Firestore) – zatiaľ je len v konzole, ak Firestore nie je dostupný."
     );
 
-    console.log("BD642 FCM: token uložený do Firestore:", token);
-  } catch (e) {
-    console.error("BD642 FCM: chyba pri ukladaní tokenu do Firestore:", e);
-  }
-}
-
-// Hlavná funkcia – registrácia notifikácií a tokenu
-async function nastavFirebaseNotifikacie() {
-  try {
-    if (!("Notification" in window)) {
-      console.warn("BD642 FCM: tento prehliadač nepodporuje oznámenia.");
+    if (!db) {
+      // Firestore nie je k dispozícii – nič ďalšie nerobíme
       return;
     }
 
-    // Povolenie oznámení
-    if (Notification.permission === "denied") {
-      console.warn("BD642 FCM: oznámenia sú ZAKÁZANÉ v prehliadači.");
-      return;
-    }
+    try {
+      var teraz = new Date();
 
-    if (Notification.permission !== "granted") {
-      const result = await Notification.requestPermission();
-      if (result !== "granted") {
-        console.warn("BD642 FCM: používateľ nepovolil oznámenia.");
-        return;
+      var data = {
+        token: token,
+        prehliadac: navigator.userAgent || "",
+        aktualizovane: teraz.toISOString()
+      };
+
+      if (fieldValue) {
+        data.vytvoreneServerom = fieldValue.serverTimestamp();
+      } else {
+        data.vytvoreneLocal = teraz.toISOString();
       }
+
+      // Zber "fcm_tokens", dokument = samotný token
+      await db.collection("fcm_tokens").doc(token).set(data, { merge: true });
+
+      console.log(
+        "BD642 FCM: Token uložený do Firestore do zberu 'fcm_tokens'."
+      );
+    } catch (e) {
+      console.error(
+        "BD642 FCM: chyba pri ukladaní FCM tokenu do Firestore:",
+        e
+      );
     }
+  }
 
-    // Registrácia service workera
-    console.log("BD642 FCM: registrujem service worker...");
-    const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-    console.log("BD642 FCM: service worker zaregistrovaný:", registration.scope);
-
-    // Získanie FCM tokenu
-    const token = await getToken(messaging, {
-      vapidKey: vapidPublicKey,
-      serviceWorkerRegistration: registration
-    });
-
-    if (!token) {
-      console.warn("BD642 FCM: nepodarilo sa získať FCM token.");
+  async function ziskajAFixniToken() {
+    if (!messaging) {
+      console.error(
+        "BD642 FCM: messaging nie je inicializovaný, token nezískam."
+      );
       return;
     }
 
-    console.log("BD642 FCM: získaný FCM token z prehliadača:", token);
+    try {
+      // Wait na service worker (ak ho používaš)
+      if ("serviceWorker" in navigator) {
+        try {
+          await navigator.serviceWorker.ready;
+        } catch (e) {
+          console.warn(
+            "BD642 FCM: serviceWorker.ready zlyhal, pokračujem aj tak:",
+            e
+          );
+        }
+      }
 
-    // Uložiť token do Firestore
-    await ulozTokenDoFirestore(token);
+      var currentToken = await messaging.getToken({
+        vapidKey: vapidPublicKey
+      });
 
-  } catch (e) {
-    console.error("BD642 FCM: chyba pri nastavovaní FCM:", e);
+      if (currentToken) {
+        await ulozTokenDoFirestore(currentToken);
+      } else {
+        console.warn(
+          "BD642 FCM: Token sa nepodarilo získať (možno neudelené oprávnenia)."
+        );
+      }
+    } catch (err) {
+      console.error("BD642 FCM: chyba pri získavaní FCM tokenu:", err);
+    }
   }
-}
 
-// Spracovanie správ, keď je stránka otvorená (v popredí)
-onMessage(messaging, (payload) => {
-  console.log("BD642 FCM: prijatá správa v popredí:", payload);
-});
+  // Reakcia na prichádzajúce správy (keď je stránka otvorená)
+  if (messaging) {
+    messaging.onMessage(function (payload) {
+      console.log("BD642 FCM: prijatá správa (foreground):", payload);
+    });
+  }
 
-// Spustiť nastavenie po načítaní stránky
-window.addEventListener("load", () => {
-  nastavFirebaseNotifikacie();
-});
+  // --- Export do globálu, aby tvoja app mohla modul skontrolovať ---
+
+  window.BD642_FCM = {
+    refreshToken: ziskajAFixniToken,
+    ulozTokenManualne: ulozTokenDoFirestore
+  };
+
+  // Hneď po načítaní sa pokúsime token získať a uložiť
+  ziskajAFixniToken();
+})();
