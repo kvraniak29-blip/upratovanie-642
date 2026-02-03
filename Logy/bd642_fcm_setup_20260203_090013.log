@@ -1,0 +1,32 @@
+**********************
+PowerShell transcript start
+Start time: 20260203090013
+Username: NTBKRISTIAN\kikov
+RunAs User: NTBKRISTIAN\kikov
+Configuration Name: 
+Machine: NTBKRISTIAN (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll
+Process ID: 23096
+PSVersion: 7.5.4
+PSEdition: Core
+GitCommitId: 7.5.4
+OS: Microsoft Windows 10.0.26200
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+[INFO] Log sa zapisuje do: C:\Users\kikov\BD 642-26 Upratovanie\upratovanie 642\Logy\bd642_fcm_setup_20260203_090013.log
+[INFO] Kontrolujem / zálohujem JS súbory...
+WARNING: Existujúci súbor zálohovaný do: C:\Users\kikov\BD 642-26 Upratovanie\upratovanie 642\bd642_firebase_messaging.js.bak_20260203_090013
+WARNING: Existujúci súbor zálohovaný do: C:\Users\kikov\BD 642-26 Upratovanie\upratovanie 642\firebase-messaging-sw.js.bak_20260203_090013
+[INFO] Generujem bd642_firebase_messaging.js...
+[PASS] bd642_firebase_messaging.js vytvorený/aktualizovaný.
+[INFO] Generujem firebase-messaging-sw.js...
+[PASS] firebase-messaging-sw.js vytvorený/aktualizovaný.
+WARNING: Firebase config a VAPID kľúč sú teraz nastavené podľa údajov z konzoly.
+**********************
+PowerShell transcript end
+End time: 20260203090013
+**********************
