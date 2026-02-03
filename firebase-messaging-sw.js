@@ -1,8 +1,8 @@
 // firebase-messaging-sw.js
-// Servisný pracovník pre prijímanie push správ na pozadí
+// Service worker pre FCM – spracovanie push notifikácií na pozadí
 
-importScripts("https://www.gstatic.com/firebasejs/12.8.0/firebase-app-compat.js");
-importScripts("https://www.gstatic.com/firebasejs/12.8.0/firebase-messaging-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js");
+importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js");
 
 firebase.initializeApp({
   apiKey: "AIzaSyDi9bmbWut2ph5emweyfOoa6FCF8xNUO8I",
@@ -14,19 +14,39 @@ firebase.initializeApp({
   measurementId: "G-1PB3714CD6"
 });
 
-const sprava = firebase.messaging();
+const messaging = firebase.messaging();
 
-// Môžeš si prispôsobiť vzhľad upozornení na pozadí
-sprava.onBackgroundMessage((payload) => {
-  console.log("[firebase-messaging-sw.js] Správa na pozadí:", payload);
+// Správy, keď appka nie je otvorená
+messaging.setBackgroundMessageHandler(function (payload) {
+  console.log("BD642 FCM SW: background message", payload);
 
-  const oznamenie = payload.notification || {};
-  const nadpis = oznamenie.title || "Upozornenie BD 642";
-  const text = oznamenie.body || "";
-  const ikona = oznamenie.icon || "/icon-192.png";
+  const title =
+    (payload.notification && payload.notification.title) ||
+    "BD 642 – Upratovanie";
+  const body =
+    (payload.notification && payload.notification.body) ||
+    "Nové upozornenie z BD 642.";
+  const icon = "/icon-192.png";
 
-  self.registration.showNotification(nadpis, {
-    body: text,
-    icon: ikona
-  });
+  const options = {
+    body: body,
+    icon: icon,
+    data: payload.data || {}
+  };
+
+  return self.registration.showNotification(title, options);
+});
+
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then(
+      function (clientList) {
+        if (clientList.length > 0) {
+          return clientList[0].focus();
+        }
+        return clients.openWindow("/");
+      }
+    )
+  );
 });
