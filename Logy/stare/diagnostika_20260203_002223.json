@@ -1,0 +1,91 @@
+{
+  "tool": "BD642 diagnostika",
+  "started_at": "2026-02-03T00:22:23",
+  "result": "FAIL",
+  "checks": [
+    {
+      "name": "PowerShell",
+      "status": "PASS",
+      "detail": "Verzia: 7.5.4"
+    },
+    {
+      "name": "Git",
+      "status": "FAIL",
+      "detail": "usage: git [-v | --version] [-h | --help] [-C <path>] [-c <name>=<value>]\n           [--exec-path[=<path>]] [--html-path] [--man-path] [--info-path]\n           [-p | --paginate | -P | --no-pager] [--no-replace-objects] [--no-lazy-fetch]\n           [--no-optional-locks] [--no-advice] [--bare] [--git-dir=<path>]\n           [--work-tree=<path>] [--namespace=<name>] [--config-env=<name>=<envvar>]\n           <command> [<args>]\n\nThese are common Git commands used in various situations:\n\nstart a working area (see also: git help tutorial)\n   clone      Clone a repository into a new directory\n   init       Create an empty Git repository or reinitialize an existing one\n\nwork on the current change (see also: git help everyday)\n   add        Add file contents to the index\n   mv         Move or rename a file, a directory, or a symlink\n   restore    Restore working tree files\n   rm         Remove files from the working tree and from the index\n\nexamine the history and state (see also: git help revisions)\n   bisect     Use binary search to find the commit that introduced a bug\n   diff       Show changes between commits, commit and working tree, etc\n   grep       Print lines matching a pattern\n   log        Show commit logs\n   show       Show various types of objects\n   status     Show the working tree status\n\ngrow, mark and tweak your common history\n   backfill   Download missing objects in a partial clone\n   branch     List, create, or delete branches\n   commit     Record changes to the repository\n   merge      Join two or more development histories together\n   rebase     Reapply commits on top of another base tip\n   reset      Reset current HEAD to the specified state\n   switch     Switch branches\n   tag        Create, list, delete or verify tags\n\ncollaborate (see also: git help workflows)\n   fetch      Download objects and refs from another repository\n   pull       Fetch from and integrate with another repository or a local branch\n   push       Update remote refs along with associated objects\n\n'git help -a' and 'git help -g' list available subcommands and some\nconcept guides. See 'git help <command>' or 'git help <concept>'\nto read about a specific subcommand or concept.\nSee 'git help git' for an overview of the system."
+    },
+    {
+      "name": "GitHub CLI (gh)",
+      "status": "PASS",
+      "detail": "Work seamlessly with GitHub from the command line."
+    },
+    {
+      "name": "Firebase CLI",
+      "status": "FAIL",
+      "detail": "Exception calling \"Start\" with \"0\" argument(s): \"An error occurred trying to start process 'C:\\Users\\kikov\\AppData\\Roaming\\npm\\firebase.ps1' with working directory 'C:\\Users\\kikov\\BD 642-26 Upratovanie\\upratovanie 642'. The specified executable is not a valid application for this OS platform.\""
+    },
+    {
+      "name": "Node + npm",
+      "status": "FAIL",
+      "detail": "node: TIMEOUT po 20s: node  | npm: Exception calling \"Start\" with \"0\" argument(s): \"An error occurred trying to start process 'C:\\Program Files\\nodejs\\npm.ps1' with working directory 'C:\\Users\\kikov\\BD 642-26 Upratovanie\\upratovanie 642'. The specified executable is not a valid application for this OS platform.\""
+    },
+    {
+      "name": "gh auth status",
+      "status": "PASS",
+      "detail": "Work seamlessly with GitHub from the command line.\n\nUSAGE\n  gh <command> <subcommand> [flags]\n\nCORE COMMANDS\n  auth:          Authenticate gh and git with GitHub\n  browse:        Open repositories, issues, pull requests, and more in the browser\n  codespace:     Connect to and manage codespaces\n  gist:          Manage gists\n  issue:         Manage issues\n  org:           Manage organizations\n  pr:            Manage pull requests\n  project:       Work with GitHub Projects.\n  release:       Manage releases\n  repo:          Manage repositories\n\nGITHUB ACTIONS COMMANDS\n  cache:         Manage GitHub Actions caches\n  run:           View details about workflow runs\n  workflow:      View details about GitHub Actions workflows\n\nALIAS COMMANDS\n  co:            Alias for \"pr checkout\"\n\nADDITIONAL COMMANDS\n  agent-task:    Work with agent tasks (preview)\n  alias:         Create command shortcuts\n  api:           Make an authenticated GitHub API request\n  attestation:   Work with artifact attestations\n  completion:    Generate shell completion scripts\n  config:        Manage configuration for gh\n  copilot:       Run the GitHub Copilot CLI (preview)\n  extension:     Manage gh extensions\n  gpg-key:       Manage GPG keys\n  label:         Manage labels\n  preview:       Execute previews for gh features\n  ruleset:       View info about repo rulesets\n  search:        Search for repositories, issues, and pull requests\n  secret:        Manage GitHub secrets\n  ssh-key:       Manage SSH keys\n  status:        Print information about relevant issues, pull requests, and notifications across repositories\n  variable:      Manage GitHub Actions variables\n\nHELP TOPICS\n  accessibility: Learn about GitHub CLI's accessibility experiences\n  actions:       Learn about working with GitHub Actions\n  environment:   Environment variables that can be used with gh\n  exit-codes:    Exit codes used by gh\n  formatting:    Formatting options for JSON data exported from gh\n  mintty:        Information about using gh with MinTTY\n  reference:     A comprehensive reference of all gh commands\n\nFLAGS\n  --help      Show help for command\n  --version   Show gh version\n\nEXAMPLES\n  $ gh issue create\n  $ gh repo clone cli/cli\n  $ gh pr checkout 321\n\nLEARN MORE\n  Use `gh <command> <subcommand> --help` for more information about a command.\n  Read the manual at https://cli.github.com/manual\n  Learn about exit codes using `gh help exit-codes`\n  Learn about accessibility experiences using `gh help accessibility`"
+    },
+    {
+      "name": "gh api user",
+      "status": "PASS",
+      "detail": "User: Work seamlessly with GitHub from the command line.\n\nUSAGE\n  gh <command> <subcommand> [flags]\n\nCORE COMMANDS\n  auth:          Authenticate gh and git with GitHub\n  browse:        Open repositories, issues, pull requests, and more in the browser\n  codespace:     Connect to and manage codespaces\n  gist:          Manage gists\n  issue:         Manage issues\n  org:           Manage organizations\n  pr:            Manage pull requests\n  project:       Work with GitHub Projects.\n  release:       Manage releases\n  repo:          Manage repositories\n\nGITHUB ACTIONS COMMANDS\n  cache:         Manage GitHub Actions caches\n  run:           View details about workflow runs\n  workflow:      View details about GitHub Actions workflows\n\nALIAS COMMANDS\n  co:            Alias for \"pr checkout\"\n\nADDITIONAL COMMANDS\n  agent-task:    Work with agent tasks (preview)\n  alias:         Create command shortcuts\n  api:           Make an authenticated GitHub API request\n  attestation:   Work with artifact attestations\n  completion:    Generate shell completion scripts\n  config:        Manage configuration for gh\n  copilot:       Run the GitHub Copilot CLI (preview)\n  extension:     Manage gh extensions\n  gpg-key:       Manage GPG keys\n  label:         Manage labels\n  preview:       Execute previews for gh features\n  ruleset:       View info about repo rulesets\n  search:        Search for repositories, issues, and pull requests\n  secret:        Manage GitHub secrets\n  ssh-key:       Manage SSH keys\n  status:        Print information about relevant issues, pull requests, and notifications across repositories\n  variable:      Manage GitHub Actions variables\n\nHELP TOPICS\n  accessibility: Learn about GitHub CLI's accessibility experiences\n  actions:       Learn about working with GitHub Actions\n  environment:   Environment variables that can be used with gh\n  exit-codes:    Exit codes used by gh\n  formatting:    Formatting options for JSON data exported from gh\n  mintty:        Information about using gh with MinTTY\n  reference:     A comprehensive reference of all gh commands\n\nFLAGS\n  --help      Show help for command\n  --version   Show gh version\n\nEXAMPLES\n  $ gh issue create\n  $ gh repo clone cli/cli\n  $ gh pr checkout 321\n\nLEARN MORE\n  Use `gh <command> <subcommand> --help` for more information about a command.\n  Read the manual at https://cli.github.com/manual\n  Learn about exit codes using `gh help exit-codes`\n  Learn about accessibility experiences using `gh help accessibility`"
+    },
+    {
+      "name": "gh repo list",
+      "status": "PASS",
+      "detail": "Work seamlessly with GitHub from the command line.\n\nUSAGE"
+    },
+    {
+      "name": "Firebase CLI",
+      "status": "FAIL",
+      "detail": "firebase nie je dostupné alebo nebeží."
+    },
+    {
+      "name": "Projekt priečinok",
+      "status": "FAIL",
+      "detail": "Nenašiel som firebase.json v koreni ani v 1. úrovni podpriečinkov."
+    }
+  ],
+  "project": {
+    "root": "C:\\Users\\kikov\\BD 642-26 Upratovanie\\upratovanie 642",
+    "detected": false,
+    "path": null,
+    "files": {}
+  },
+  "github": {
+    "ok": true,
+    "user": "Work seamlessly with GitHub from the command line.\n\nUSAGE\n  gh <command> <subcommand> [flags]\n\nCORE COMMANDS\n  auth:          Authenticate gh and git with GitHub\n  browse:        Open repositories, issues, pull requests, and more in the browser\n  codespace:     Connect to and manage codespaces\n  gist:          Manage gists\n  issue:         Manage issues\n  org:           Manage organizations\n  pr:            Manage pull requests\n  project:       Work with GitHub Projects.\n  release:       Manage releases\n  repo:          Manage repositories\n\nGITHUB ACTIONS COMMANDS\n  cache:         Manage GitHub Actions caches\n  run:           View details about workflow runs\n  workflow:      View details about GitHub Actions workflows\n\nALIAS COMMANDS\n  co:            Alias for \"pr checkout\"\n\nADDITIONAL COMMANDS\n  agent-task:    Work with agent tasks (preview)\n  alias:         Create command shortcuts\n  api:           Make an authenticated GitHub API request\n  attestation:   Work with artifact attestations\n  completion:    Generate shell completion scripts\n  config:        Manage configuration for gh\n  copilot:       Run the GitHub Copilot CLI (preview)\n  extension:     Manage gh extensions\n  gpg-key:       Manage GPG keys\n  label:         Manage labels\n  preview:       Execute previews for gh features\n  ruleset:       View info about repo rulesets\n  search:        Search for repositories, issues, and pull requests\n  secret:        Manage GitHub secrets\n  ssh-key:       Manage SSH keys\n  status:        Print information about relevant issues, pull requests, and notifications across repositories\n  variable:      Manage GitHub Actions variables\n\nHELP TOPICS\n  accessibility: Learn about GitHub CLI's accessibility experiences\n  actions:       Learn about working with GitHub Actions\n  environment:   Environment variables that can be used with gh\n  exit-codes:    Exit codes used by gh\n  formatting:    Formatting options for JSON data exported from gh\n  mintty:        Information about using gh with MinTTY\n  reference:     A comprehensive reference of all gh commands\n\nFLAGS\n  --help      Show help for command\n  --version   Show gh version\n\nEXAMPLES\n  $ gh issue create\n  $ gh repo clone cli/cli\n  $ gh pr checkout 321\n\nLEARN MORE\n  Use `gh <command> <subcommand> --help` for more information about a command.\n  Read the manual at https://cli.github.com/manual\n  Learn about exit codes using `gh help exit-codes`\n  Learn about accessibility experiences using `gh help accessibility`",
+    "repos": [
+      "USAGE",
+      "  gh <command> <subcommand> [flags]",
+      "CORE COMMANDS",
+      "  auth:          Authenticate gh and git with GitHub",
+      "  browse:        Open repositories, issues, pull requests, and more in the browser",
+      "  codespace:     Connect to and manage codespaces",
+      "  gist:          Manage gists",
+      "  issue:         Manage issues",
+      "  org:           Manage organizations",
+      "  pr:            Manage pull requests"
+    ]
+  },
+  "firebase": {
+    "ok": false,
+    "user": null,
+    "projects": null,
+    "current_project": null
+  },
+  "node": {
+    "ok": false,
+    "node": null,
+    "npm": null
+  },
+  "finished_at": "2026-02-03T00:22:43"
+}

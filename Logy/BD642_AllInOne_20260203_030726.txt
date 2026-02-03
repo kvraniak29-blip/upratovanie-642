@@ -1,0 +1,28 @@
+**********************
+PowerShell transcript start
+Start time: 20260203030726
+Username: NTBKRISTIAN\kikov
+RunAs User: NTBKRISTIAN\kikov
+Configuration Name: 
+Machine: NTBKRISTIAN (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll
+Process ID: 20928
+PSVersion: 7.5.4
+PSEdition: Core
+GitCommitId: 7.5.4
+OS: Microsoft Windows 10.0.26200
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+[PASS]  Workflows priečinok existuje.
+[PASS]  Základné súbory existujú.
+[PASS]  Doplnený <link rel="manifest"> do index.html
+[PASS]  Doplnené Apple PWA meta do index.html
+[PASS]  Doplnený gcm_sender_id do manifest.webmanifest
+[PASS]  Vytvorený .firebaserc (default = bd-642-26-upratovanie-d2851)
+[PASS]  firebase.json hosting.public = '.'
+[INFO]  Inicializujem git repo...
+[PASS]  git init OK

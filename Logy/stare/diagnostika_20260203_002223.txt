@@ -1,0 +1,40 @@
+**********************
+PowerShell transcript start
+Start time: 20260203002223
+Username: NTBKRISTIAN\kikov
+RunAs User: NTBKRISTIAN\kikov
+Configuration Name: 
+Machine: NTBKRISTIAN (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll
+Process ID: 31112
+PSVersion: 7.5.4
+PSEdition: Core
+GitCommitId: 7.5.4
+OS: Microsoft Windows 10.0.26200
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+=== 1) Základné nástroje ===
+ - git --version
+ - gh --version
+ - firebase --version
+ - node -v
+ - npm -v
+
+=== 2) GitHub overenie (gh) ===
+ - gh auth status
+ - gh api user --jq .login
+ - gh repo list (limit 5)
+
+=== 3) Firebase overenie ===
+
+=== 4) Projektová štruktúra (Firebase/Hosting) ===
+
+FAIL: Zásadné veci ešte chýbajú (pozri FAIL vyššie).
+**********************
+PowerShell transcript end
+End time: 20260203002243
+**********************
