@@ -288,7 +288,7 @@
   </style>
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Upratovací plánovač BD 642">
 </head>
@@ -590,6 +590,11 @@
             <span class="tag" id="pushState"><i class="fa-regular fa-bell"></i> Push: —</span>
             <span class="tag" id="pushTokenShort"><i class="fa-solid fa-key"></i> Token: —</span>
           </div>
+
+          <div class="small" style="margin-top:8px">
+            Pozn.: Prvýkrát musí byť povolenie vyžiadané cez klik. Ak prehliadač push notifikácie nepodporuje
+            alebo sú zakázané, zobrazí sa hlásenie a push sa len nevzapne.
+          </div>
         </div>
         <!-- /PUSH -->
 
@@ -604,12 +609,12 @@
 
         <div class="row" style="margin-top:10px">
           <div class="small" style="min-width:0">
-            Kalendár svojich termínov si môžeš pridať do svojho Google/Outlook kalendára.
+            Kalendár harmonogramu si môžeš pridať do svojho Google/Outlook kalendára.
           </div>
           <span class="spacer"></span>
-          <button class="btn mini" id="btnIcs" type="button">
+          <a href="kalendar.ics" class="btn mini" id="btnIcs" download>
             <i class="fa-regular fa-calendar"></i> Stiahnuť kalendár (.ics)
-          </button>
+          </a>
         </div>
 
         <div class="small" style="margin-top:10px">
@@ -629,21 +634,6 @@
   const nowIso = ()=>new Date().toISOString();
   const fmtDMY = (iso)=>{ const x=d0(iso); return `${pad(x.getDate())}.${pad(x.getMonth()+1)}.${x.getFullYear()}`; };
   const fmtDMYHM = (dt)=>`${pad(dt.getDate())}.${pad(dt.getMonth()+1)}.${dt.getFullYear()} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
-
-  // ICS helpery
-  function icsEscape(s){
-    return (s||"")
-      .replace(/\\/g,"\\\\")
-      .replace(/;/g,"\\;")
-      .replace(/,/g,"\\,")
-      .replace(/\r?\n/g,"\\n");
-  }
-  function fmtIcsDate(dt){
-    return dt.getFullYear().toString().padStart(4,"0") + pad(dt.getMonth()+1) + pad(dt.getDate());
-  }
-  function fmtIcsDateTime(dt){
-    return fmtIcsDate(dt) + "T" + pad(dt.getHours()) + pad(dt.getMinutes()) + pad(dt.getSeconds());
-  }
 
   function escapeHtml(s){ return (s||"").replace(/[&<>'\"]/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;" }[c])); }
   function linkify(s){ return s.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'); }
@@ -927,99 +917,6 @@
     const block = blocks.find(x=>x.id===best.blockId);
     if(!block) return null;
     return { ...best, block };
-  }
-
-  // ICS: len moje týždne + moje upozornenia
-  function buildIcsForMe(){
-    if(!meFamily) return null;
-
-    const myBlocks = blocks.filter(b=>b.family===meFamily);
-    if(!myBlocks.length) return null;
-
-    const now = new Date();
-    const stamp = fmtIcsDateTime(now);
-    const lines = [];
-    lines.push(
-      "BEGIN:VCALENDAR",
-      "VERSION:2.0",
-      "PRODID:-//BD642//Upratovanie BD 642//SK",
-      "CALSCALE:GREGORIAN",
-      "METHOD:PUBLISH"
-    );
-
-    // bloky harmonogramu
-    myBlocks.forEach(b=>{
-      const dtStart = d0(b.start);
-      const dtEnd = new Date(d0(b.end).getTime() + 24*3600*1000); // deň po nedeli
-      const sum = icsEscape(`Upratovanie – ${displayName[meFamily]}`);
-      const descParts = [`Týždeň ${fmtDMY(b.start)} – ${fmtDMY(b.end)}`];
-      if(b.note) descParts.push(`Poznámka: ${b.note}`);
-      const desc = icsEscape(descParts.join(" | "));
-
-      lines.push(
-        "BEGIN:VEVENT",
-        `UID:bd642-block-${b.id}-${meFamily}@bd642`,
-        `DTSTAMP:${stamp}`,
-        `DTSTART;VALUE=DATE:${fmtIcsDate(dtStart)}`,
-        `DTEND;VALUE=DATE:${fmtIcsDate(dtEnd)}`,
-        `SUMMARY:${sum}`,
-        `DESCRIPTION:${desc}`,
-        "END:VEVENT"
-      );
-    });
-
-    // jednorazové upozornenia
-    const famRem = reminders[meFamily] || {};
-    Object.entries(famRem).forEach(([blockId, list])=>{
-      const b = blocks.find(x=>x.id===Number(blockId));
-      if(!b || !Array.isArray(list)) return;
-      list.forEach(r=>{
-        const dt = new Date(r.dtISO);
-        if(isNaN(dt.getTime())) return;
-        const sum = icsEscape(`Pripomienka upratovania – ${displayName[meFamily]}`);
-        const desc = icsEscape(`Upozornenie pre týždeň ${fmtDMY(b.start)} – ${fmtDMY(b.end)}`);
-        const endDt = new Date(dt.getTime() + 30*60000);
-
-        lines.push(
-          "BEGIN:VEVENT",
-          `UID:bd642-rem-${r.id}-${blockId}-${meFamily}@bd642`,
-          `DTSTAMP:${stamp}`,
-          `DTSTART:${fmtIcsDateTime(dt)}`,
-          `DTEND:${fmtIcsDateTime(endDt)}`,
-          `SUMMARY:${sum}`,
-          `DESCRIPTION:${desc}`,
-          "END:VEVENT"
-        );
-      });
-    });
-
-    // trvalé upozornenia (predpočítané pre každý môj týždeň)
-    const ps = getPresetsFor(meFamily);
-    if(ps.length){
-      myBlocks.forEach(b=>{
-        ps.forEach(p=>{
-          const dt = dtInBlockForDowTime(b, p.dow, p.time);
-          if(!dt) return;
-          const sum = icsEscape(`Pripomienka (trvalá) – ${displayName[meFamily]}`);
-          const desc = icsEscape(`Trvalé upozornenie pre týždeň ${fmtDMY(b.start)} – ${fmtDMY(b.end)} (${dowToLabel(p.dow)} ${p.time})`);
-          const endDt = new Date(dt.getTime() + 30*60000);
-
-          lines.push(
-            "BEGIN:VEVENT",
-            `UID:bd642-preset-${p.id}-${b.id}-${meFamily}@bd642`,
-            `DTSTAMP:${stamp}`,
-            `DTSTART:${fmtIcsDateTime(dt)}`,
-            `DTEND:${fmtIcsDateTime(endDt)}`,
-            `SUMMARY:${sum}`,
-            `DESCRIPTION:${desc}`,
-            "END:VEVENT"
-          );
-        });
-      });
-    }
-
-    lines.push("END:VCALENDAR");
-    return lines.join("\r\n");
   }
 
   const tabs = ["schedule","swaps","chat","settings"];
@@ -1359,8 +1256,87 @@
     }
     n.innerHTML = `<i class="fa-regular fa-bell"></i> Notifikácie: ${escapeHtml(perm)} (${prefs.notifyEnabled==="on" ? "zap." : "vyp."})`;
 
-    const nextTxt = next && next.dt ? fmtDMYHM(next.dt) : "—";
-    r.innerHTML = `<i class="fa-regular fa-clock"></i> Najbližšie upozornenie: ${escapeHtml(nextTxt)}`;
+    if(next && next.dt){
+      r.innerHTML = `<i class="fa-regular fa-clock"></i> Najbližšie upozornenie: ${escapeHtml(fmtDMYHM(next.dt))}`;
+    } else {
+      r.innerHTML = `<i class="fa-regular fa-clock"></i> Najbližšie upozornenie: —`;
+    }
+  }
+
+  // ICS helper funkcie (len moje termíny + moje upozornenia)
+  function toIcsDate(dt){
+    return `${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}`;
+  }
+  function toIcsDateTime(dt){
+    return `${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}${pad(dt.getSeconds())}`;
+  }
+  function escIcs(s){
+    return String(s||"")
+      .replace(/\\/g,"\\\\")
+      .replace(/\n/g,"\\n")
+      .replace(/,/g,"\\,")
+      .replace(/;/g,"\\;");
+  }
+
+  function buildMyCalendarIcs(){
+    if(!meFamily){
+      alert("Najprv sa prihlás.");
+      return null;
+    }
+    const famName = displayName[meFamily] || meFamily;
+    const now = new Date();
+    const lines = [];
+    lines.push("BEGIN:VCALENDAR");
+    lines.push("VERSION:2.0");
+    lines.push("PRODID:-//BD642//Upratovanie BD 642//SK");
+
+    blocks.forEach(b=>{
+      if(b.family !== meFamily) return;
+
+      const start = d0(b.start);
+      const end = new Date(d0(b.end).getTime() + 24*3600*1000);
+      const uid = `bd642-week-${b.id}-${meFamily}@bd642`;
+
+      lines.push("BEGIN:VEVENT");
+      lines.push(`UID:${uid}`);
+      lines.push(`DTSTAMP:${toIcsDateTime(now)}`);
+      lines.push(`SUMMARY:${escIcs("Upratovanie – " + famName)}`);
+      lines.push(`DESCRIPTION:${escIcs("Týždeň upratovania " + famName + " (" + fmtDMY(b.start) + " – " + fmtDMY(b.end) + ")")}`);
+      lines.push(`DTSTART;VALUE=DATE:${toIcsDate(start)}`);
+      lines.push(`DTEND;VALUE=DATE:${toIcsDate(end)}`);
+      lines.push("END:VEVENT");
+
+      const oneOffs = getRemFor(meFamily, b.id);
+      oneOffs.forEach(r=>{
+        const dt = new Date(r.dtISO);
+        if(isNaN(dt.getTime())) return;
+        const uidR = `bd642-rem-${b.id}-${r.id}-${meFamily}@bd642`;
+        lines.push("BEGIN:VEVENT");
+        lines.push(`UID:${uidR}`);
+        lines.push(`DTSTAMP:${toIcsDateTime(now)}`);
+        lines.push(`SUMMARY:${escIcs("Pripomienka upratovania – " + famName)}`);
+        lines.push(`DESCRIPTION:${escIcs("Jednorazové upozornenie pre týždeň " + fmtDMY(b.start) + " – " + fmtDMY(b.end))}`);
+        lines.push(`DTSTART:${toIcsDateTime(dt)}`);
+        lines.push("END:VEVENT");
+      });
+
+      const ps = getPresetsFor(meFamily);
+      ps.forEach(p=>{
+        const dt = dtInBlockForDowTime(b, p.dow, p.time);
+        if(!dt) return;
+        const uidP = `bd642-rem-p-${b.id}-${p.id}-${meFamily}@bd642`;
+        lines.push("BEGIN:VEVENT");
+        lines.push(`UID:${uidP}`);
+        lines.push(`DTSTAMP:${toIcsDateTime(now)}`);
+        lines.push(`SUMMARY:${escIcs("Pripomienka upratovania – " + famName)}`);
+        lines.push(`DESCRIPTION:${escIcs("Trvalé upozornenie pre týždeň " + fmtDMY(b.start) + " – " + fmtDMY(b.end))}`);
+        lines.push(`DTSTART:${toIcsDateTime(dt)}`);
+        lines.push("END:VEVENT");
+      });
+    });
+
+    lines.push("END:VCALENDAR");
+    return lines.join("\r\n");
   }
 
   let notifyTimer = null;
@@ -1647,7 +1623,7 @@
 
       const from = Number($("#swapFrom").value);
       const to = Number($("#swapTo").value);
-      if(from===to){ alert("Vyber iný cieľový týždeň."); return; }
+      if(from===to){ alert("Vyberte iný cieľový týždeň."); return; }
 
       const toB = blocks.find(b=>b.id===to);
       const target = toB ? toB.family : null;
@@ -1719,26 +1695,19 @@
     $("#btnPushEnable").addEventListener("click", enablePushFromButton);
 
     // ICS export – len moje termíny + moje upozornenia
-    $("#btnIcs").addEventListener("click", ()=>{
-      if(!meFamily){
-        alert("Najprv sa prihlás pod svojou rodinou.");
-        return;
-      }
-      const ics = buildIcsForMe();
-      if(!ics){
-        alert("Nie je čo exportovať – nemáš priradené žiadne týždne.");
-        return;
-      }
-      const blob = new Blob([ics], {type:"text/calendar;charset=utf-8"});
+    $("#btnIcs").addEventListener("click", (e)=>{
+      e.preventDefault();
+      const ics = buildMyCalendarIcs();
+      if(!ics) return;
+      const famNameSafe = meFamily ? (displayName[meFamily] || meFamily).replace(/\s+/g,"_") : "upratovanie";
+      const blob = new Blob([ics], {type:"text/calendar"});
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      const famSlug = norm(displayName[meFamily] || meFamily || "harmonogram") || "harmonogram";
       a.href = url;
-      a.download = `bd642_${famSlug}_harmonogram.ics`;
+      a.download = `bd642_upratovanie_${famNameSafe}.ics`;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
     });
   }
 
@@ -1797,7 +1766,9 @@
 </script>
 
   <!-- Firebase push modul + service worker registrácia + VAPID (je v tomto súbore) -->
-  <script type="module" src="/bd642_firebase_messaging.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
+  <script src="/bd642_firebase_messaging.js"></script>
   <!-- BD642_FCM_INJECT -->
 </body>
 </html>
