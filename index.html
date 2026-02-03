@@ -288,7 +288,6 @@
   </style>
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Upratovací plánovač BD 642">
 </head>
@@ -319,8 +318,6 @@
 
           <div class="row">
             <button class="btn pri" id="loginBtn"><i class="fa-solid fa-right-to-bracket"></i> Prihlásiť</button>
-            <span class="spacer"></span>
-            <button class="btn" id="loginDemo" title="Len čítanie (bez úprav)"><i class="fa-regular fa-eye"></i> Demo</button>
           </div>
         </div>
       </div>
@@ -593,7 +590,7 @@
 
           <div class="small" style="margin-top:8px">
             Pozn.: Prvýkrát musí byť povolenie vyžiadané cez klik. Ak prehliadač push notifikácie nepodporuje
-            alebo sú zakázané, zobrazí sa hlásenie a push sa len nevzapne.
+            alebo sú zakázané, zobrazí sa hlásenie a push sa len nezapne.
           </div>
         </div>
         <!-- /PUSH -->
@@ -686,6 +683,7 @@
   let meFamily = null;
   let role = "user";
   let showMineOnly = false;
+  let activeTab = "schedule";
 
   const BASE_START = "2026-01-05";
 
@@ -921,6 +919,7 @@
 
   const tabs = ["schedule","swaps","chat","settings"];
   function showTab(key){
+    activeTab = key;
     tabs.forEach(k=>{ $("#tab-"+k).classList.toggle("hidden", k!==key); });
     $$(".tabbtn").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===key ? "true" : "false"));
     if (window.matchMedia("(max-width: 720px)").matches){
@@ -953,7 +952,7 @@
       const note = b.note ? escapeHtml(b.note) : "—";
       const total = (meFamily && b.family===meFamily) ? countAllForBlock(b.id) : 0;
       const totalTxt = (meFamily && b.family===meFamily) ? `${total}×` : "—";
-      const remBtnDisabled = (role==="demo" || !meFamily || b.family!==meFamily) ? "disabled" : "";
+      const remBtnDisabled = (!meFamily || b.family!==meFamily) ? "disabled" : "";
 
       tr.innerHTML = `
         <td>
@@ -969,7 +968,7 @@
         </td>
         <td>${note}</td>
         <td>
-          <button class="btn mini" data-swap="${b.id}" ${role==="demo" ? "disabled" : ""}><i class="fa-solid fa-right-left"></i> Výmena</button>
+          <button class="btn mini" data-swap="${b.id}"><i class="fa-solid fa-right-left"></i> Výmena</button>
         </td>`;
       tb.appendChild(tr);
     });
@@ -987,7 +986,7 @@
       }
       const note = b.note ? escapeHtml(b.note) : "—";
       const total = (meFamily && b.family===meFamily) ? countAllForBlock(b.id) : 0;
-      const remBtnDisabled = (role==="demo" || !meFamily || b.family!==meFamily) ? "disabled" : "";
+      const remBtnDisabled = (!meFamily || b.family!==meFamily) ? "disabled" : "";
 
       el.innerHTML = `
         <div class="whead">
@@ -999,7 +998,7 @@
         </div>
         <div class="wactions">
           <button class="btn mini" data-rem="${b.id}" ${remBtnDisabled}><i class="fa-regular fa-bell"></i> Upozornenia (${meFamily && b.family===meFamily ? total : "—"})</button>
-          <button class="btn mini" data-swap="${b.id}" ${role==="demo" ? "disabled" : ""}><i class="fa-solid fa-right-left"></i> Výmena</button>
+          <button class="btn mini" data-swap="${b.id}"><i class="fa-solid fa-right-left"></i> Výmena</button>
         </div>
       `;
       wrap.appendChild(el);
@@ -1067,7 +1066,7 @@
       const tr = document.createElement("tr");
 
       const isTarget = meFamily && s.target && (meFamily === s.target);
-      const canRespond = role!=="demo" && isTarget;
+      const canRespond = !!isTarget;
       const disabled = (s.status!=="Čaká") || !canRespond;
 
       tr.innerHTML = `
@@ -1117,6 +1116,42 @@
     box.scrollTop = box.scrollHeight;
   }
 
+  // CHAT notifikácie
+  function notifyChatNew(msg){
+    if(prefs.notifyEnabled!=="on") return;
+    if(!("Notification" in window)) return;
+    if(Notification.permission !== "granted") return;
+    const who = displayName[msg.who] || msg.who || "BD 642";
+    const body = (msg.text || "").slice(0,120) || "Nová správa v chate.";
+    try{
+      new Notification(`BD 642 – nová správa (${who})`, { body });
+    }catch(_){}
+  }
+
+  function addChatMessage(msg, opts){
+    opts = opts || {};
+    chat.push(msg);
+    renderChat();
+    if(opts.incoming){
+      if(activeTab !== "chat"){
+        unread += 1;
+        $("#kpiUnread").textContent = String(unread);
+      }
+      notifyChatNew(msg);
+    }
+  }
+
+  // globálna funkcia pre príjem správ z databázy (napr. Firestore)
+  window.BD642_PridajChatSpravu = function(data){
+    try{
+      const who = data && data.who ? data.who : (meFamily || "Neznámy");
+      const text = data && data.text ? String(data.text) : "";
+      const files = data && Array.isArray(data.files) ? data.files : [];
+      const incoming = data && typeof data.incoming === "boolean" ? data.incoming : true;
+      addChatMessage({ who, ts: nowIso(), text, files }, { incoming });
+    }catch(_){}
+  };
+
   // reminders modal state
   let remOpenBlockId = null;
 
@@ -1134,7 +1169,7 @@
 
   function openReminders(blockId){
     const b = blocks.find(x=>x.id===Number(blockId));
-    if(!b || !meFamily || role==="demo" || b.family!==meFamily) return;
+    if(!b || !meFamily || b.family!==meFamily) return;
 
     remOpenBlockId = b.id;
     $("#remTitle").textContent = `${displayName[meFamily]} • ${fmtDMY(b.start)} – ${fmtDMY(b.end)}`;
@@ -1456,18 +1491,6 @@
     try{ window.dispatchEvent(new Event("BD642:PoPrihlaseni")); } catch(_){}
   }
 
-  function doDemo(){
-    meFamily = null;
-    role = "demo";
-    localStorage.setItem("bd642_meFamily", "");
-    localStorage.setItem("bd642_role", role);
-
-    $("#loginOverlay").classList.add("hidden");
-    $("#loginOverlay").setAttribute("aria-hidden","true");
-    rerenderAll();
-    scheduleNotification();
-  }
-
   function doLogout(){
     meFamily = null;
     role = "user";
@@ -1485,7 +1508,6 @@
 
   function wire(){
     $("#loginBtn").addEventListener("click", doLoginFromInput);
-    $("#loginDemo").addEventListener("click", doDemo);
     $("#loginCode").addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLoginFromInput(); });
 
     $("#btnLogout").addEventListener("click", doLogout);
@@ -1504,7 +1526,7 @@
     $("#remOverlay").addEventListener("click", (e)=>{ if(e.target===$("#remOverlay")) closeReminders(); });
 
     $("#remAdd").addEventListener("click", async ()=>{
-      if(role==="demo" || !meFamily || !remOpenBlockId) return;
+      if(!meFamily || !remOpenBlockId) return;
       const b = blocks.find(x=>x.id===remOpenBlockId);
       if(!b) return;
 
@@ -1537,7 +1559,7 @@
     });
 
     $("#remClear").addEventListener("click", ()=>{
-      if(role==="demo" || !meFamily || !remOpenBlockId) return;
+      if(!meFamily || !remOpenBlockId) return;
       if(!confirm("Vymazať jednorazové upozornenia pre tento týždeň?")) return;
       setRemFor(meFamily, remOpenBlockId, []);
       renderRemindersList();
@@ -1546,7 +1568,7 @@
     });
 
     $("#presetApply").addEventListener("click", async ()=>{
-      if(role==="demo" || !meFamily) return;
+      if(!meFamily) return;
 
       const dow = Number($("#presetDow").value);
       const time = $("#presetTime").value;
@@ -1572,7 +1594,7 @@
     });
 
     $("#presetClear").addEventListener("click", ()=>{
-      if(role==="demo" || !meFamily) return;
+      if(!meFamily) return;
       if(!confirm("Zmazať všetky trvalé upozornenia?")) return;
       setPresetsFor(meFamily, []);
       renderPresetState();
@@ -1597,7 +1619,6 @@
         const id = Number(t.dataset.accept);
         const s = swaps.find(x=>x.id===id);
         if(!s || s.status!=="Čaká") return;
-        if(role==="demo") return;
         if(!(meFamily && s.target && meFamily===s.target)) return;
 
         s.status="Prijaté";
@@ -1608,7 +1629,6 @@
         const id = Number(t.dataset.decline);
         const s = swaps.find(x=>x.id===id);
         if(!s || s.status!=="Čaká") return;
-        if(role==="demo") return;
         if(!(meFamily && s.target && meFamily===s.target)) return;
 
         s.status="Odmietnuté";
@@ -1618,12 +1638,11 @@
     });
 
     $("#swapCreate").addEventListener("click", ()=>{
-      if(role==="demo"){ alert("Demo režim je len na čítanie."); return; }
       if(!meFamily){ alert("Najprv sa prihlás."); return; }
 
       const from = Number($("#swapFrom").value);
       const to = Number($("#swapTo").value);
-      if(from===to){ alert("Vyberte iný cieľový týždeň."); return; }
+      if(from===to){ alert("Vyber iný cieľový týždeň."); return; }
 
       const toB = blocks.find(b=>b.id===to);
       const target = toB ? toB.family : null;
@@ -1633,12 +1652,12 @@
 
       $("#swapMsg").value="";
       unread += 1;
+      $("#kpiUnread").textContent = String(unread);
       rerenderAll();
       scheduleNotification();
     });
 
     $("#chatSend").addEventListener("click", ()=>{
-      if(role==="demo"){ alert("Demo režim je len na čítanie."); return; }
       if(!meFamily){ alert("Najprv sa prihlás."); return; }
 
       const text = $("#chatText").value.trim();
@@ -1646,10 +1665,12 @@
       const file = fileInput.files && fileInput.files[0] ? fileInput.files[0].name : null;
       if(!text && !file){ alert("Napíš správu alebo pridaj prílohu."); return; }
 
-      chat.push({who:meFamily, ts:nowIso(), text:text||"(príloha)", files: file ? [file] : []});
+      addChatMessage(
+        {who:meFamily, ts:nowIso(), text:text||"(príloha)", files: file ? [file] : []},
+        {incoming:false}
+      );
       $("#chatText").value="";
       fileInput.value="";
-      renderChat();
     });
 
     $("#chatMarkRead").addEventListener("click", ()=>{
@@ -1724,12 +1745,7 @@
   const savedFam = (localStorage.getItem("bd642_meFamily") || "").trim();
   const savedRole = (localStorage.getItem("bd642_role") || "").trim();
 
-  if(savedRole==="demo"){
-    role = "demo";
-    meFamily = null;
-    $("#loginOverlay").classList.add("hidden");
-    $("#loginOverlay").setAttribute("aria-hidden","true");
-  } else if(savedFam && families.includes(savedFam)){
+  if(savedFam && families.includes(savedFam)){
     role = "user";
     meFamily = savedFam;
     $("#loginOverlay").classList.add("hidden");
@@ -1739,6 +1755,9 @@
   } else {
     role = "user";
     meFamily = null;
+    // odstránenie starých hodnôt z demo režimu
+    localStorage.removeItem("bd642_meFamily");
+    localStorage.removeItem("bd642_role");
   }
 
   $("#notifyEnabled").value = prefs.notifyEnabled;
