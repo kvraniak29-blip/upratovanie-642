@@ -607,6 +607,16 @@
           <button class="btn mini" id="simulateSync"><i class="fa-solid fa-rotate"></i> Sync</button>
         </div>
 
+        <div class="row" style="margin-top:10px">
+          <div class="small" style="min-width:0">
+            Kalendár harmonogramu si môžeš pridať do svojho Google/Outlook kalendára.
+          </div>
+          <span class="spacer"></span>
+          <a href="kalendar.ics" class="btn mini" id="btnIcs" download>
+            <i class="fa-regular fa-calendar"></i> Stiahnuť kalendár (.ics)
+          </a>
+        </div>
+
         <div class="small" style="margin-top:10px">
           Upozornenia nastavíš v <strong>Harmonograme</strong> pri konkrétnom týždni. Trvalé nastavenie je v dialógu „Upozornenia“.
         </div>
@@ -729,13 +739,8 @@
   function savePresets(){ localStorage.setItem(PRESET_KEY, JSON.stringify(presets)); }
 
   function initData(){
-    swaps = [
-      {id:101, who:"Jarosovci", from:null, to:null, status:"Čaká", msg:"", applied:false, target:"Vraniak"}
-    ];
-    chat = [
-      {who:"Cuchorovci", ts:new Date(Date.now()-3600*1000).toISOString(), text:"Ahojte, tento týždeň stíhame v utorok a štvrtok.", files:[]},
-      {who:"Vraniak", ts:new Date(Date.now()-1800*1000).toISOString(), text:"OK.", files:[]},
-    ];
+    swaps = [];
+    chat = [];
   }
 
   function sortBlocks(){ blocks.sort((a,b)=>d0(a.start)-d0(b.start)); }
@@ -776,10 +781,6 @@
 
     if (!blocks.length){
       generateWeeklyBlocks(BASE_START, isoDate(target));
-      if (blocks.length >= 3){
-        swaps[0].from = blocks[2].id;
-        swaps[0].to = blocks[1].id;
-      }
       return;
     }
 
@@ -1088,6 +1089,10 @@
   function renderChat(){
     const box = $("#msgs");
     box.innerHTML = "";
+    if(!chat.length){
+      box.innerHTML = '<div class="small">Zatiaľ žiadne správy. Napíš prvú správu nižšie.</div>';
+      return;
+    }
     chat.forEach(m=>{
       const t = new Date(m.ts);
       const when = `${pad(t.getDate())}.${pad(t.getMonth()+1)}. ${pad(t.getHours())}:${pad(t.getMinutes())}`;
@@ -1133,11 +1138,11 @@
 
     remOpenBlockId = b.id;
     $("#remTitle").textContent = `${displayName[meFamily]} • ${fmtDMY(b.start)} – ${fmtDMY(b.end)}`;
-    $("#remHint").textContent = `Povolené len v rozsahu týždňa: ${fmtDMY(b.start)} – ${fmtDMY(b.end)}.`;
+    $("#remHint").innerHTML = `Jednorazové upozornenie môže byť <strong>kedykoľvek</strong>. Odporúčame ho nastaviť okolo týždňa ${fmtDMY(b.start)} – ${fmtDMY(b.end)}.`;
     $("#remDt").value = "";
 
-    $("#remDt").min = `${b.start}T00:00`;
-    $("#remDt").max = `${b.end}T23:59`;
+    $("#remDt").removeAttribute("min");
+    $("#remDt").removeAttribute("max");
 
     const ps = getPresetsFor(meFamily);
     if(ps.length){
@@ -1436,7 +1441,9 @@
 
       const min = new Date(d0(b.start)); min.setHours(0,0,0,0);
       const max = new Date(d0(b.end)); max.setHours(23,59,59,999);
-      if(dt < min || dt > max){ if(!confirm("Dátum je mimo vybraného týždňa. Chceš pokračovať?")) return; }
+      if(dt < min || dt > max){
+        if(!confirm("Dátum je mimo vybraného týždňa. Chceš pokračovať?")) return;
+      }
 
       if(prefs.notifyEnabled==="on"){
         const ok = await ensureNotifyPermission();
@@ -1673,6 +1680,3 @@
   <!-- BD642_FCM_INJECT -->
 </body>
 </html>
-
-
-

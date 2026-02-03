@@ -1,12 +1,12 @@
 **********************
 PowerShell transcript start
-Start time: 20260203045053
+Start time: 20260203081113
 Username: NTBKRISTIAN\kikov
 RunAs User: NTBKRISTIAN\kikov
 Configuration Name: 
 Machine: NTBKRISTIAN (Microsoft Windows NT 10.0.26200.0)
 Host Application: C:\Program Files\PowerShell\7\pwsh.dll
-Process ID: 5392
+Process ID: 20288
 PSVersion: 7.5.4
 PSEdition: Core
 GitCommitId: 7.5.4
@@ -17,11 +17,7 @@ PSRemotingProtocolVersion: 2.3
 SerializationVersion: 1.1.0.1
 WSManStackVersion: 3.0
 **********************
-[INFO] ProjektRoot: C:\Users\kikov\BD 642-26 Upratovanie\upratovanie 642
-[PASS] Git OK: C:\Program Files\Git\cmd\git.exe
-[PASS] Firebase CLI OK: C:\Users\kikov\AppData\Roaming\npm\firebase.ps1
-[PASS] Základné súbory existujú.
-[PASS] index už obsahuje manifest link.
-[PASS] Apple PWA meta už sú v indexe.
-[PASS] manifest.webmanifest už obsahuje gcm_sender_id.
-[PASS] Git repo už existuje (.git nájdený).
+[2026-02-03 08:11:13] [INFO] Log sa zapisuje do: C:\Users\kikov\BD 642-26 Upratovanie\upratovanie 642\Logy\bd642_deploy_20260203_081113.log
+[2026-02-03 08:11:13] [INFO] Kontrolujem nástroj: Git (git)...
+[2026-02-03 08:11:13] [INFO] Kontrolujem nástroj: Firebase CLI (firebase)...
+[2026-02-03 08:11:13] [INFO] Git: zisťujem zmeny (git status --porcelain)...
