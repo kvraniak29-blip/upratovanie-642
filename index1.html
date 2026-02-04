@@ -578,6 +578,9 @@
           <div class="row">
             <div style="min-width:0">
               <div style="font-weight:900">Push notifikácie (Firebase)</div>
+              <div class="small" style="margin-top:4px">
+                Toto sú <strong>„pravé“ pushy</strong> – fungujú aj keď stránka nie je otvorená, ale len v podporovaných prehliadačoch (napr. Chrome na Androide). Na iPhone cez Chrome to typicky nefunguje.
+              </div>
             </div>
             <span class="spacer"></span>
             <button class="btn pri" id="btnPushEnable"><i class="fa-solid fa-bell"></i> Zapnúť push</button>
@@ -1042,11 +1045,8 @@
       const tr = document.createElement("tr");
 
       const isTarget = meFamily && s.target && (meFamily === s.target);
-      const isOwner  = meFamily && s.who && (meFamily === s.who);
       const canRespond = role!=="demo" && isTarget;
-      const canCancel  = role!=="demo" && isOwner && s.status==="Čaká";
-      const disabledAccept  = (s.status!=="Čaká") || !canRespond;
-      const disabledDecline = disabledAccept;
+      const disabled = (s.status!=="Čaká") || !canRespond;
 
       tr.innerHTML = `
         <td><strong>${escapeHtml(displayName[s.who] || s.who)}</strong></td>
@@ -1054,9 +1054,8 @@
         <td>${toB ? (fmtDMY(toB.start)+" – "+fmtDMY(toB.end)) : "—"}</td>
         <td>${escapeHtml(s.status)}${s.applied ? " (aplikované)" : ""}</td>
         <td>
-          <button class="btn mini" ${disabledAccept?"disabled":""} data-accept="${s.id}"><i class="fa-solid fa-check"></i> Prijať</button>
-          <button class="btn mini" ${disabledDecline?"disabled":""} data-decline="${s.id}"><i class="fa-solid fa-xmark"></i> Odmietnuť</button>
-          <button class="btn mini" ${canCancel?"":"disabled"} data-cancel="${s.id}"><i class="fa-solid fa-ban"></i> Zrušiť</button>
+          <button class="btn mini" ${disabled?"disabled":""} data-accept="${s.id}"><i class="fa-solid fa-check"></i> Prijať</button>
+          <button class="btn mini" ${disabled?"disabled":""} data-decline="${s.id}"><i class="fa-solid fa-xmark"></i> Odmietnuť</button>
         </td>
       `;
       sb.appendChild(tr);
@@ -1561,7 +1560,7 @@
     });
 
     document.addEventListener("click", (e)=>{
-      const t = e.target.closest("[data-swap],[data-accept],[data-decline],[data-cancel],[data-rem]");
+      const t = e.target.closest("[data-swap],[data-accept],[data-decline],[data-rem]");
       if(!t) return;
 
       if (t.dataset.rem){
@@ -1591,17 +1590,6 @@
         if(!(meFamily && s.target && meFamily===s.target)) return;
 
         s.status="Odmietnuté";
-        rerenderAll();
-        scheduleNotification();
-      }
-      if (t.dataset.cancel){
-        const id = Number(t.dataset.cancel);
-        const s = swaps.find(x=>x.id===id);
-        if(!s || s.status!=="Čaká") return;
-        if(role==="demo") return;
-        if(!(meFamily && s.who && meFamily===s.who)) return;
-
-        s.status="Zrušené";
         rerenderAll();
         scheduleNotification();
       }
