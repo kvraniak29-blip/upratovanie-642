@@ -162,18 +162,40 @@
 
       if (FieldValue && typeof FieldValue.serverTimestamp === "function") {
         data.serverUpdatedAt = FieldValue.serverTimestamp();
-        // ak dokument neexistuje, serverCreatedAt nastavíme len raz (merge + podmienka nie je v rules),
-        // takže to nastavíme tiež, merge ho pri ďalších updatoch prepíše – to je OK pre prvú verziu.
+        // prvé uloženie vs ďalšie updaty – pre prvú verziu necháme rovnaké
         data.serverCreatedAt = FieldValue.serverTimestamp();
       }
 
-      await db.collection("fcm_tokens").doc(token).set(data, { merge: true });
+      // NOVÁ LOGIKA:
+      // ak je rodina zadaná, ukladáme tokeny do:
+      //   rodiny/{rodina}/fcm_tokens/{token}
+      // inak fallback na pôvodné:
+      //   fcm_tokens/{token}
+      var kolekciaRef;
+      if (rodina) {
+        kolekciaRef = db
+          .collection("rodiny")
+          .doc(rodina)
+          .collection("fcm_tokens");
+      } else {
+        kolekciaRef = db.collection("fcm_tokens");
+      }
 
-      console.log("BD642 FCM: token uložený do Firestore fcm_tokens/" + token);
+      await kolekciaRef.doc(token).set(data, { merge: true });
+
+      console.log(
+        "BD642 FCM: token uložený do Firestore " +
+          (rodina ? "rodiny/" + rodina + "/fcm_tokens/" : "fcm_tokens/") +
+          token
+      );
       return { ulozene: true };
     } catch (e) {
       console.error("BD642 FCM: chyba pri ukladaní tokenu do Firestore:", e);
-      return { ulozene: false, dovod: "FIRESTORE_CHYBA", detail: String(e && e.message ? e.message : e) };
+      return {
+        ulozene: false,
+        dovod: "FIRESTORE_CHYBA",
+        detail: String(e && e.message ? e.message : e)
+      };
     }
   }
 

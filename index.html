@@ -580,7 +580,7 @@
               <div style="font-weight:900">Push notifikácie (Firebase)</div>
             </div>
             <span class="spacer"></span>
-            <!-- úprava: žiadny inline onclick, všetko rieši JS nižšie -->
+            <!-- žiadny inline onclick, všetko rieši JS nižšie -->
             <button class="btn pri" id="btnPushEnable" type="button">
               <i class="fa-solid fa-bell"></i> <span id="btnPushText">Zapnúť push</span>
             </button>
@@ -1381,7 +1381,9 @@
 
     if(state === "OK"){
       elState.className = "tag ok";
-      elState.innerHTML = '<i class="fa-solid fa-circle-check"></i> Push: zapnuté';
+      const famLabel = meFamily ? (displayName[meFamily] || meFamily) : null;
+      const whoTxt = famLabel ? ` (pre ${escapeHtml(famLabel)})` : "";
+      elState.innerHTML = '<i class="fa-solid fa-circle-check"></i> Push: zapnuté' + whoTxt;
       const short = token ? (String(token).slice(0,10) + "…" + String(token).slice(-6)) : "—";
       elTok.className = "tag";
       elTok.innerHTML = `<i class="fa-solid fa-key"></i> Token: ${escapeHtml(short)}`;
@@ -1424,10 +1426,20 @@
     elTok.innerHTML = '<i class="fa-solid fa-key"></i> Token: —';
   }
 
-  /* Úpravená funkcia: z pohľadu používateľa sa tlačidlo vždy správa "živé" –
-     zmení text, roztočí ikonu, a vždy aspoň nastaví stav v UI (OK / ERR / ...). */
+  /* Tlačidlo "Zapnúť push" – naviazané na rodinu + BD642_ZapnutUpozornenia */
   async function enablePushFromButton(btn){
     try{
+      if(role === "demo"){
+        alert("V demo režime nie je možné zapnúť push notifikácie.");
+        setPushUi("UNSUPPORTED");
+        return;
+      }
+      if(!meFamily){
+        alert("Najprv sa prihlás cez kód rodiny a až potom zapni push notifikácie.");
+        setPushUi("ERR");
+        return;
+      }
+
       setPushUi("WORKING");
       if(btn){
         btn.disabled = true;
@@ -1725,7 +1737,7 @@
       }, 900);
     });
 
-    /* Nové pripnutie na tlačidlo "Zapnúť push" – jediné miesto, kde sa push volá */
+    /* Naviazanie tlačidla "Zapnúť push" na FCM modul a prihlásenú rodinu */
     const btnPush = $("#btnPushEnable");
     if(btnPush){
       btnPush.addEventListener("click", (e)=>{
