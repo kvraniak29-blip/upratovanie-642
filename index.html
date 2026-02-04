@@ -7,7 +7,7 @@
   <title>Upratovací plánovač BD 642</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 
-  <!-- Ikony (GitHub/Firebase friendly – relatívne cesty) -->
+  <!-- Ikony (GitHub Pages friendly – relatívne cesty) -->
   <link rel="icon" href="./icon-192.png" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
 
@@ -335,7 +335,7 @@
           <h2 style="margin:0">Upozornenia</h2>
           <div class="small" id="remTitle">—</div>
           <div class="small" style="margin-top:6px">
-            Lokálne notifikácie fungujú spoľahlivo, keď je stránka (alebo PWA) otvorená.
+            Lokálne notifikácie fungujú spoľahlivo, keď je stránka (alebo PWA) otvorená. Pre push notifikácie použi tlačidlo <strong>Zapnúť push</strong> v Nastaveniach (podporované len v niektorých prehliadačoch, napr. Chrome na Androide).
           </div>
         </div>
         <span class="spacer"></span>
@@ -416,7 +416,7 @@
         <div class="status">
           <div class="pill" id="pillFamily"><span class="dot ok"></span><span id="txtFamily">Prihlásený: —</span></div>
           <div class="pill" id="pillRole"><span class="dot sync"></span><span id="txtRole">Režim: Používateľ</span></div>
-          <div class="pill" id="pillOnline"><span class="dot ok" id="dotOnline"></span><span id="txtOnline">Online</span></div>
+          <div class="pill"><span class="dot ok" id="dotOnline"></span><span id="txtOnline">Online</span></div>
           <div class="pill"><span class="dot sync" id="dotSync"></span><span id="txtSync">Sync: pripravené</span></div>
           <div class="pill"><i class="fa-regular fa-clock"></i><span id="txtLast">Posl. sync: —</span></div>
           <button class="btn mini" id="btnLogout" title="Odhlásiť"><i class="fa-solid fa-right-from-bracket"></i></button>
@@ -580,7 +580,10 @@
               <div style="font-weight:900">Push notifikácie (Firebase)</div>
             </div>
             <span class="spacer"></span>
-            <button class="btn pri" id="btnPushEnable"><i class="fa-solid fa-bell"></i> Zapnúť push</button>
+            <button class="btn pri" id="btnPushEnable" type="button"
+                    onclick="window.BD642_PushClick && window.BD642_PushClick()">
+              <i class="fa-solid fa-bell"></i> Zapnúť push
+            </button>
           </div>
 
           <div class="row" style="margin-top:10px">
@@ -626,10 +629,10 @@
   const $$ = (s)=>Array.from(document.querySelectorAll(s));
   const pad = (n)=>String(n).padStart(2,"0");
   const d0 = (iso)=>new Date(iso+"T00:00:00");
-  const isoDate = (dt)=>`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+  const isoDate = (dt)=>\`\${dt.getFullYear()}-\${pad(dt.getMonth()+1)}-\${pad(dt.getDate())}\`;
   const nowIso = ()=>new Date().toISOString();
-  const fmtDMY = (iso)=>{ const x=d0(iso); return `${pad(x.getDate())}.${pad(x.getMonth()+1)}.${x.getFullYear()}`; };
-  const fmtDMYHM = (dt)=>`${pad(dt.getDate())}.${pad(dt.getMonth()+1)}.${dt.getFullYear()} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+  const fmtDMY = (iso)=>{ const x=d0(iso); return \`\${pad(x.getDate())}.\${pad(x.getMonth()+1)}.\${x.getFullYear()}\`; };
+  const fmtDMYHM = (dt)=>\`\${pad(dt.getDate())}.\${pad(dt.getMonth()+1)}.\${dt.getFullYear()} \${pad(dt.getHours())}:\${pad(dt.getMinutes())}\`;
 
   function escapeHtml(s){ return (s||"").replace(/[&<>'\"]/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;" }[c])); }
   function linkify(s){ return s.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'); }
@@ -862,39 +865,6 @@
     return countRemForBlock(blockId) + countPresetForBlock(blockId);
   }
 
-  function nextUpcomingReminder(){
-    if(!meFamily) return null;
-    const now = new Date();
-    let best = null;
-
-    const f = reminders[meFamily] || {};
-    Object.entries(f).forEach(([bid, list])=>{
-      if(!Array.isArray(list)) return;
-      list.forEach(r=>{
-        const dt = new Date(r.dtISO);
-        if (isNaN(dt.getTime()) || dt <= now) return;
-        if (!best || dt < best.dt) best = { dt, type:"one", blockId:Number(bid), id:r.id };
-      });
-    });
-
-    const ps = getPresetsFor(meFamily);
-    if(ps.length){
-      blocks.forEach(b=>{
-        if(b.family!==meFamily) return;
-        ps.forEach(p=>{
-          const dt = dtInBlockForDowTime(b, p.dow, p.time);
-          if(!dt || dt <= now) return;
-          if(!best || dt < best.dt) best = { dt, type:"preset", blockId:b.id, id:p.id };
-        });
-      });
-    }
-
-    if(!best) return null;
-    const block = blocks.find(x=>x.id===best.blockId);
-    if(!block) return null;
-    return { ...best, block };
-  }
-
   const tabs = ["schedule","swaps","chat","settings"];
   function showTab(key){
     tabs.forEach(k=>{ $("#tab-"+k).classList.toggle("hidden", k!==key); });
@@ -907,7 +877,7 @@
 
   function setHeaderState(){
     const meTxt = meFamily ? displayName[meFamily] : "—";
-    $("#txtFamily").textContent = `Prihlásený: ${meTxt}`;
+    $("#txtFamily").textContent = \`Prihlásený: \${meTxt}\`;
     $("#swapMe").textContent = meTxt;
     $("#chatMe").textContent = meTxt;
     $("#setMe").textContent = meTxt;
@@ -928,7 +898,7 @@
 
       const note = b.note ? escapeHtml(b.note) : "—";
       const total = (meFamily && b.family===meFamily) ? countAllForBlock(b.id) : 0;
-      const totalTxt = (meFamily && b.family===meFamily) ? `${total}×` : "—";
+      const totalTxt = (meFamily && b.family===meFamily) ? \`\${total}×\` : "—";
       const remBtnDisabled = (role==="demo" || !meFamily || b.family!==meFamily) ? "disabled" : "";
 
       tr.innerHTML = `
@@ -987,7 +957,7 @@
 
     if (cur){
       $("#badgeNow").style.display = "inline-flex";
-      $("#kpiNow").textContent = `${fmtDMY(cur.start)} – ${fmtDMY(cur.end)}`;
+      $("#kpiNow").textContent = \`\${fmtDMY(cur.start)} – \${fmtDMY(cur.end)}\`;
       $("#kpiFamily").textContent = displayName[cur.family] || cur.family;
     } else {
       $("#badgeNow").style.display = "none";
@@ -1017,14 +987,14 @@
     fromList.forEach(b=>{
       const opt1 = document.createElement("option");
       opt1.value = b.id;
-      opt1.textContent = `${displayName[b.family] || b.family} • ${fmtDMY(b.start)}–${fmtDMY(b.end)}`;
+      opt1.textContent = \`\${displayName[b.family] || b.family} • \${fmtDMY(b.start)}–\${fmtDMY(b.end)}\`;
       from.appendChild(opt1);
     });
 
     blocks.forEach(b=>{
       const opt2 = document.createElement("option");
       opt2.value = b.id;
-      opt2.textContent = `${displayName[b.family] || b.family} • ${fmtDMY(b.start)}–${fmtDMY(b.end)}`;
+      opt2.textContent = \`\${displayName[b.family] || b.family} • \${fmtDMY(b.start)}–\${fmtDMY(b.end)}\`;
       to.appendChild(opt2);
     });
 
@@ -1041,21 +1011,30 @@
       const toB = blocks.find(b=>b.id===s.to);
       const tr = document.createElement("tr");
 
-      const isOwner = meFamily && s.who === meFamily;
+      const isMine = meFamily && s.who === meFamily;
       const isTarget = meFamily && s.target && (meFamily === s.target);
       const canRespond = role!=="demo" && isTarget && s.status==="Čaká";
-      const canCancel = role!=="demo" && isOwner && s.status==="Čaká";
+      const canCancel = role!=="demo" && isMine && s.status==="Čaká";
+
+      let actions = "";
+      if (canRespond){
+        actions += `<button class="btn mini" data-accept="${s.id}"><i class="fa-solid fa-check"></i> Prijať</button>
+                    <button class="btn mini" data-decline="${s.id}"><i class="fa-solid fa-xmark"></i> Odmietnuť</button>`;
+      }
+      if (canCancel){
+        if (actions) actions += " ";
+        actions += `<button class="btn mini" data-cancel="${s.id}" style="border-color:rgba(251,113,133,.35)"><i class="fa-solid fa-ban"></i> Zrušiť žiadosť</button>`;
+      }
+      if (!actions){
+        actions = '<span class="small" style="color:var(--muted)">—</span>';
+      }
 
       tr.innerHTML = `
         <td><strong>${escapeHtml(displayName[s.who] || s.who)}</strong></td>
         <td>${fromB ? (fmtDMY(fromB.start)+" – "+fmtDMY(fromB.end)) : "—"}</td>
         <td>${toB ? (fmtDMY(toB.start)+" – "+fmtDMY(toB.end)) : "—"}</td>
         <td>${escapeHtml(s.status)}${s.applied ? " (aplikované)" : ""}</td>
-        <td>
-          <button class="btn mini" data-accept="${s.id}" ${canRespond ? "" : "disabled"}><i class="fa-solid fa-check"></i> Prijať</button>
-          <button class="btn mini" data-decline="${s.id}" ${canRespond ? "" : "disabled"}><i class="fa-solid fa-xmark"></i> Odmietnuť</button>
-          <button class="btn mini" data-cancel="${s.id}" ${canCancel ? "" : "disabled"}><i class="fa-solid fa-ban"></i> Zrušiť žiadosť</button>
-        </td>
+        <td>${actions}</td>
       `;
       sb.appendChild(tr);
     });
@@ -1072,7 +1051,7 @@
     }
     chat.forEach(m=>{
       const t = new Date(m.ts);
-      const when = `${pad(t.getDate())}.${pad(t.getMonth()+1)}. ${pad(t.getHours())}:${pad(t.getMinutes())}`;
+      const when = \`\${pad(t.getDate())}.\${pad(t.getMonth()+1)}. \${pad(t.getHours())}:\${pad(t.getMinutes())}\`;
       const div = document.createElement("div");
       div.style.padding = "8px 10px";
       div.style.border = "1px solid var(--line)";
@@ -1080,7 +1059,7 @@
       div.style.margin = "0 0 8px";
       div.style.background = "rgba(0,0,0,.10)";
 
-      const files = (m.files||[]).map(f=>`<span class="tag" style="border-style:dashed"><i class="fa-regular fa-image"></i> ${escapeHtml(f)}</span>`).join(" ");
+      const files = (m.files||[]).map(f=>\`<span class="tag" style="border-style:dashed"><i class="fa-regular fa-image"></i> \${escapeHtml(f)}</span>\`).join(" ");
 
       div.innerHTML = `
         <div style="font-size:11px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -1101,8 +1080,8 @@
     const ps = getPresetsFor(meFamily);
     if(!ps.length) return "vypnuté";
     const p0 = ps[0];
-    const more = ps.length>1 ? ` +${ps.length-1}` : "";
-    return `${dowToLabel(p0.dow)} ${p0.time}${more}`;
+    const more = ps.length>1 ? \` +\${ps.length-1}\` : "";
+    return \`\${dowToLabel(p0.dow)} \${p0.time}\${more}\`;
   }
   function renderPresetState(){
     $("#presetState").innerHTML = `<i class="fa-regular fa-bookmark"></i> Trvalé: ${escapeHtml(presetStateText())}`;
@@ -1346,6 +1325,39 @@
     }, ms);
   }
 
+  function nextUpcomingReminder(){
+    if(!meFamily) return null;
+    const now = new Date();
+    let best = null;
+
+    const f = reminders[meFamily] || {};
+    Object.entries(f).forEach(([bid, list])=>{
+      if(!Array.isArray(list)) return;
+      list.forEach(r=>{
+        const dt = new Date(r.dtISO);
+        if (isNaN(dt.getTime()) || dt <= now) return;
+        if (!best || dt < best.dt) best = { dt, type:"one", blockId:Number(bid), id:r.id };
+      });
+    });
+
+    const ps = getPresetsFor(meFamily);
+    if(ps.length){
+      blocks.forEach(b=>{
+        if(b.family!==meFamily) return;
+        ps.forEach(p=>{
+          const dt = dtInBlockForDowTime(b, p.dow, p.time);
+          if(!dt || dt <= now) return;
+          if(!best || dt < best.dt) best = { dt, type:"preset", blockId:b.id, id:p.id };
+        });
+      });
+    }
+
+    if(!best) return null;
+    const block = blocks.find(x=>x.id===best.blockId);
+    if(!block) return null;
+    return { ...best, block };
+  }
+
   function rerenderAll(){
     setHeaderState();
     renderSchedule();
@@ -1408,35 +1420,22 @@
       return;
     }
 
-    let fn = null;
-    if(typeof window.BD642_ZapnutUpozornenia === "function"){
-      fn = window.BD642_ZapnutUpozornenia;
-    } else if(typeof window.ZapnutUpozornenia === "function"){
-      fn = window.ZapnutUpozornenia;
-    }
-
-    if(!fn){
-      alert("Push modul nie je načítaný. Skontroluj súbor bd642_firebase_messaging.js a registráciu service workera.");
+    if(typeof window.BD642_ZapnutUpozornenia !== "function"){
+      alert("Push modul nie je načítaný. Skontroluj bd642_firebase_messaging.js.");
       setPushUi("ERR");
       return;
     }
 
-    try{
-      const res = await fn();
-      if(res && res.ok && res.token){
-        setPushUi("OK", res.token);
-        return;
-      }
-
-      const dovod = res && res.dovod ? res.dovod : "NEZNAME";
-      if(dovod === "NEPODPOROVANE") setPushUi("UNSUPPORTED");
-      else if(dovod === "NEPOVOLENE") setPushUi("DENIED");
-      else setPushUi("ERR");
-    }catch(e){
-      console.error("BD642 FCM: výnimka pri zapínaní push:", e);
-      setPushUi("ERR");
-      alert("Pri zapínaní push notifikácií nastala chyba. Podrobnosti sú v konzole (F12).");
+    const res = await window.BD642_ZapnutUpozornenia();
+    if(res && res.ok && res.token){
+      setPushUi("OK", res.token);
+      return;
     }
+
+    const dovod = res && res.dovod ? res.dovod : "NEZNAME";
+    if(dovod === "NEPODPOROVANE") setPushUi("UNSUPPORTED");
+    else if(dovod === "NEPOVOLENE") setPushUi("DENIED");
+    else setPushUi("ERR");
   }
 
   function doLoginFromInput(){
@@ -1692,7 +1691,13 @@
       }, 900);
     });
 
-    $("#btnPushEnable").addEventListener("click", enablePushFromButton);
+    const btnPush = $("#btnPushEnable");
+    if(btnPush){
+      btnPush.addEventListener("click", (e)=>{
+        e.preventDefault();
+        if(window.BD642_PushClick) window.BD642_PushClick();
+      });
+    }
 
     $("#btnIcs").addEventListener("click", (e)=>{
       e.preventDefault();
@@ -1742,6 +1747,23 @@
   $("#notifyEnabled").value = prefs.notifyEnabled;
   setPushUi("—");
 
+  // globálny handler pre inline onclick – volá samotnú funkciu + fallback
+  window.BD642_PushClick = async function(){
+    try{
+      if(typeof enablePushFromButton === "function"){
+        await enablePushFromButton();
+      }else if(typeof window.BD642_ZapnutUpozornenia === "function"){
+        const res = await window.BD642_ZapnutUpozornenia();
+        console.log("BD642: výsledok BD642_ZapnutUpozornenia (bez UI):", res);
+      }else{
+        alert("Push modul nie je načítaný. Skontroluj bd642_firebase_messaging.js.");
+      }
+    }catch(e){
+      console.error("BD642: chyba pri zapínaní push notifikácií:", e);
+      alert("Nepodarilo sa zapnúť push notifikácie (pozri konzolu).");
+    }
+  };
+
   wire();
   rerenderAll();
   scheduleNotification();
@@ -1766,11 +1788,11 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-  <!-- DÔLEŽITÉ: relatívna cesta (Firebase/GitHub subcesta) -->
+  <!-- DÔLEŽITÉ: relatívna cesta (GitHub Pages subcesta) -->
   <script src="./bd642_firebase_messaging.js"></script>
 
   <script>
-    // Registrácia service workeru pre Firebase messaging
+    // Registrácia service workeru pre Firebase messaging (GitHub Pages friendly)
     (function () {
       if (!("serviceWorker" in navigator)) return;
 
