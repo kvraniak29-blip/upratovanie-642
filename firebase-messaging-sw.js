@@ -1,7 +1,7 @@
 // firebase-messaging-sw.js
 // Service worker pre FCM – BD 642
 // Musí byť v tom istom "root scope", kde beží app
-// (na Firebase Hostingu v koreňovom "public").
+// (na GitHub Pages / Firebase Hostingu v koreňovom "public").
 
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js");
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js");
@@ -14,93 +14,88 @@ var firebaseConfig = {
   storageBucket: "bd-642-26-upratovanie-d2851.firebasestorage.app",
   messagingSenderId: "530262860262",
   appId: "1:530262860262:web:ceef384f16e1a6f7e6f627",
-  measurementId: "G-1PB3714CD6"
+  measurementId: "G-2ZDWWZBKRR"
 };
 
-// Bezpečná inicializácia Firebase vo worker-i
-try {
-  if (!firebase.apps || !firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-    console.log("BD642 FCM [SW]: firebase.initializeApp OK");
-  }
-} catch (e) {
-  console.error("BD642 FCM [SW]: firebase.initializeApp chyba:", e);
-}
+// Inicializácia Firebase v service worker-i
+firebase.initializeApp(firebaseConfig);
 
 var messaging = null;
 try {
-  if (firebase.messaging) {
+  if (firebase.messaging && firebase.messaging.isSupported && firebase.messaging.isSupported()) {
     messaging = firebase.messaging();
-    console.log("BD642 FCM [SW]: messaging inicializovaný.");
-  } else {
-    console.warn("BD642 FCM [SW]: firebase.messaging nie je dostupný.");
   }
-} catch (e2) {
-  console.error("BD642 FCM [SW]: firebase.messaging chyba:", e2);
+} catch (e) {
+  // Ak by prehliadač Messaging nepodporoval, nechceme spadnúť
+  console.warn("BD642 SW: Firebase Messaging nie je podporovaný alebo nastala chyba:", e);
 }
 
-// Helper na bezpečné čítanie z payloadu
-function safeGet(obj, path, defVal) {
-  try {
-    var parts = path.split(".");
-    var cur = obj;
-    for (var i = 0; i < parts.length; i++) {
-      if (cur == null) return defVal;
-      cur = cur[parts[i]];
-    }
-    return (cur === undefined || cur === null) ? defVal : cur;
-  } catch (_) {
-    return defVal;
-  }
-}
+/**
+ * Backend (Cloud Functions / server) posiela WebPush tak, že FCM payload obsahuje:
+ *
+ * 1) "notification": { ... } - klasický blok, ktorý FCM vie priamo zobraziť
+ * 2) "data": { ... }         - vlastné dáta (rodina, url, typ, atď.)
+ *
+ * Tento service worker spraví:
+ *  - prečíta data / notification
+ *  - zobrazí notifikáciu cez self.registration.showNotification(...)
+ *  - v notificationclick otvorí / dofokusuje príslušnú URL (napr. kalendár / chat)
+ */
 
-// Background správy (push, keď app nie je v popredí)
 if (messaging) {
   messaging.onBackgroundMessage(function (payload) {
-    console.log("BD642 FCM [SW]: background správa:", payload);
+    // Môže prísť payload v rôznych formách, snažíme sa správať robustne
+    console.log("[BD642 SW] Background message received:", payload);
 
-    var title = safeGet(payload, "notification.title", "BD 642 – upozornenie");
-    var body = safeGet(payload, "notification.body", "");
+    var data = (payload && payload.data) ? payload.data : {};
 
-    // preferuj data.url, fallback na click_action
-    var url =
-      safeGet(payload, "data.url", null) ||
-      safeGet(payload, "data.click_action", null);
+    // Názov / text notifikácie
+    var title =
+      (payload.notification && payload.notification.title) ||
+      data.title ||
+      "BD 642 – upozornenie";
 
-    // scope root = miesto, kde je SW zaregistrovaný
-    var scopeRoot =
-      (self.registration && self.registration.scope)
-        ? self.registration.scope
-        : "/";
+    var body =
+      (payload.notification && payload.notification.body) ||
+      data.body ||
+      "Máte nové upozornenie.";
 
-    var targetUrl = url || scopeRoot;
+    // Ikony – môžu byť doplnené aj z data
+    var icon = data.icon || (payload.notification && payload.notification.icon) || "/icon-192.png";
+    var badge = data.badge || (payload.notification && payload.notification.badge) || "/icon-192.png";
 
-    var options = {
+    // URL, na ktorú chceme kliknutím prejsť – backend ju môže posielať v data.targetUrl
+    var targetUrl = data.targetUrl || data.url || "/";
+
+    var notificationOptions = {
       body: body,
-      icon: safeGet(payload, "notification.icon", "icon-192.png"),
-      badge: safeGet(payload, "notification.badge", "icon-192.png"),
-      data: { url: targetUrl }
+      icon: icon,
+      badge: badge,
+      data: {
+        // uložíme si URL do data, aby sme s ňou vedeli pracovať pri clicku
+        url: targetUrl,
+        rawData: data
+      },
+      // napr. tag podľa typu, aby sa notifikácie „spájali“
+      tag: data.tag || "bd642-notification",
+      renotify: data.renotify === "true" || data.renotify === true
     };
 
-    self.registration.showNotification(title, options);
+    self.registration.showNotification(title, notificationOptions);
   });
 }
 
-// Klik na notifikáciu – otvorí / zaostrí okno appky
+// Reakcia na kliknutie na notifikáciu
 self.addEventListener("notificationclick", function (event) {
+  console.log("[BD642 SW] notificationclick:", event);
+
   event.notification.close();
 
-  var targetUrl = "/";
-  try {
-    if (
-      event.notification &&
-      event.notification.data &&
-      event.notification.data.url
-    ) {
-      targetUrl = event.notification.data.url;
-    }
-  } catch (_) {}
+  var targetUrl = (event.notification && event.notification.data && event.notification.data.url)
+    ? event.notification.data.url
+    : "/";
 
+  // Pokúsime sa nájsť už otvorený klient (tab) s danou URL a prepnúť naň
   event.waitUntil(
     clients
       .matchAll({ type: "window", includeUncontrolled: true })
@@ -108,7 +103,6 @@ self.addEventListener("notificationclick", function (event) {
         for (var i = 0; i < clientList.length; i++) {
           var client = clientList[i];
           if (client && "focus" in client) {
-            // ak už máme otvorené okno v rovnakom scope, iba ho zaostríme
             try {
               if (targetUrl && client.url && client.url.indexOf(targetUrl) !== -1) {
                 return client.focus();
