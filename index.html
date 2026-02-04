@@ -7,7 +7,7 @@
   <title>Upratovací plánovač BD 642</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 
-  <!-- Ikony (GitHub Pages friendly – relatívne cesty) -->
+  <!-- Ikony (GitHub/Firebase friendly – relatívne cesty) -->
   <link rel="icon" href="./icon-192.png" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
 
@@ -335,7 +335,7 @@
           <h2 style="margin:0">Upozornenia</h2>
           <div class="small" id="remTitle">—</div>
           <div class="small" style="margin-top:6px">
-            Lokálne notifikácie fungujú spoľahlivo, keď je stránka (alebo PWA) otvorená. Push notifikácie (Firebase) zapneš v Nastaveniach.
+            Lokálne notifikácie fungujú spoľahlivo, keď je stránka (alebo PWA) otvorená.
           </div>
         </div>
         <span class="spacer"></span>
@@ -589,7 +589,7 @@
           </div>
 
           <div class="small" style="margin-top:8px">
-            Pozn.: Prehliadač sa ťa najskôr musí opýtať na povolenie. Ak push nie je podporovaný alebo je zakázaný, zobrazí sa hlásenie a tlačidlo len ostane neaktívne.
+            Pozn.: Prehliadač sa ťa najskôr musí opýtať na povolenie. Ak push nie je podporovaný alebo je zakázaný, zobrazí sa hlásenie a tlačidlo ostane neaktívne.
           </div>
         </div>
         <!-- /PUSH -->
@@ -1041,10 +1041,10 @@
       const toB = blocks.find(b=>b.id===s.to);
       const tr = document.createElement("tr");
 
-      const isMine = meFamily && (s.who === meFamily);
+      const isOwner = meFamily && s.who === meFamily;
       const isTarget = meFamily && s.target && (meFamily === s.target);
       const canRespond = role!=="demo" && isTarget && s.status==="Čaká";
-      const canCancel = role!=="demo" && isMine && s.status==="Čaká";
+      const canCancel = role!=="demo" && isOwner && s.status==="Čaká";
 
       tr.innerHTML = `
         <td><strong>${escapeHtml(displayName[s.who] || s.who)}</strong></td>
@@ -1052,9 +1052,9 @@
         <td>${toB ? (fmtDMY(toB.start)+" – "+fmtDMY(toB.end)) : "—"}</td>
         <td>${escapeHtml(s.status)}${s.applied ? " (aplikované)" : ""}</td>
         <td>
-          <button class="btn mini" ${canRespond?"":"disabled"} data-accept="${s.id}"><i class="fa-solid fa-check"></i> Prijať</button>
-          <button class="btn mini" ${canRespond?"":"disabled"} data-decline="${s.id}"><i class="fa-solid fa-xmark"></i> Odmietnuť</button>
-          <button class="btn mini" ${canCancel?"":"disabled"} data-cancel="${s.id}"><i class="fa-solid fa-ban"></i> Zrušiť žiadosť</button>
+          <button class="btn mini" data-accept="${s.id}" ${canRespond ? "" : "disabled"}><i class="fa-solid fa-check"></i> Prijať</button>
+          <button class="btn mini" data-decline="${s.id}" ${canRespond ? "" : "disabled"}><i class="fa-solid fa-xmark"></i> Odmietnuť</button>
+          <button class="btn mini" data-cancel="${s.id}" ${canCancel ? "" : "disabled"}><i class="fa-solid fa-ban"></i> Zrušiť žiadosť</button>
         </td>
       `;
       sb.appendChild(tr);
@@ -1402,20 +1402,27 @@
   }
 
   async function enablePushFromButton(){
+    if(!("Notification" in window) || !("serviceWorker" in navigator)){
+      alert("Tento prehliadač nepodporuje web push (Notification + Service Worker).");
+      setPushUi("UNSUPPORTED");
+      return;
+    }
+
+    let fn = null;
+    if(typeof window.BD642_ZapnutUpozornenia === "function"){
+      fn = window.BD642_ZapnutUpozornenia;
+    } else if(typeof window.ZapnutUpozornenia === "function"){
+      fn = window.ZapnutUpozornenia;
+    }
+
+    if(!fn){
+      alert("Push modul nie je načítaný. Skontroluj súbor bd642_firebase_messaging.js a registráciu service workera.");
+      setPushUi("ERR");
+      return;
+    }
+
     try{
-      if(!("Notification" in window) || !("serviceWorker" in navigator)){
-        alert("Tento prehliadač nepodporuje web push (Notification + Service Worker).");
-        setPushUi("UNSUPPORTED");
-        return;
-      }
-
-      if(typeof window.BD642_ZapnutUpozornenia !== "function"){
-        alert("Push modul nie je načítaný. Skontroluj súbor „bd642_firebase_messaging.js“.");
-        setPushUi("ERR");
-        return;
-      }
-
-      const res = await window.BD642_ZapnutUpozornenia();
+      const res = await fn();
       if(res && res.ok && res.token){
         setPushUi("OK", res.token);
         return;
@@ -1425,10 +1432,10 @@
       if(dovod === "NEPODPOROVANE") setPushUi("UNSUPPORTED");
       else if(dovod === "NEPOVOLENE") setPushUi("DENIED");
       else setPushUi("ERR");
-    }catch(err){
-      console.error("BD642 push – chyba pri kliknutí na Zapnúť push:", err);
-      alert("Pri zapínaní push notifikácií nastala chyba. Pozri konzolu (F12 → Console) pre detaily.");
+    }catch(e){
+      console.error("BD642 FCM: výnimka pri zapínaní push:", e);
       setPushUi("ERR");
+      alert("Pri zapínaní push notifikácií nastala chyba. Podrobnosti sú v konzole (F12).");
     }
   }
 
@@ -1604,8 +1611,8 @@
         if(!s || s.status!=="Čaká") return;
         if(role==="demo") return;
         if(!(meFamily && s.who && meFamily===s.who)) return;
-        if(!confirm("Zrušiť túto žiadosť o výmenu?")) return;
-        s.status="Zrušená";
+
+        s.status="Zrušené";
         rerenderAll();
         scheduleNotification();
       }
@@ -1759,11 +1766,11 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-  <!-- DÔLEŽITÉ: relatívna cesta (GitHub Pages subcesta) -->
+  <!-- DÔLEŽITÉ: relatívna cesta (Firebase/GitHub subcesta) -->
   <script src="./bd642_firebase_messaging.js"></script>
 
   <script>
-    // Registrácia service workeru pre Firebase messaging (GitHub Pages friendly)
+    // Registrácia service workeru pre Firebase messaging
     (function () {
       if (!("serviceWorker" in navigator)) return;
 

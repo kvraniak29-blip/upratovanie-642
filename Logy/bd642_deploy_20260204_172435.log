@@ -22,3 +22,32 @@ WSManStackVersion: 3.0
 [INFO] Kontrolujem nástroj: Firebase CLI ('firebase')...
 [INFO] Nástroj 'Firebase CLI ('firebase')' ("firebase") OK.
 [INFO] Git: zisťujem zmeny (git status --porcelain)...
+[INFO] Git: pridávam zmeny (git add -A)...
+warning: in the working copy of '.firebase/hosting..cache', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'index.html', LF will be replaced by CRLF the next time Git touches it
+[INFO] Git: vytváram commit: 'BD642 – automatický deploy 2026-02-04 17:24'...
+[main 087eaa6] BD642 – automatický deploy 2026-02-04 17:24
+ 7 files changed, 113 insertions(+), 50 deletions(-)
+ create mode 100644 Logy/bd642_deploy_20260204_172435.log
+ rename Logy/{ => stare}/bd642_deploy_20260204_160824.log (100%)
+ rename Logy/{ => stare}/bd642_deploy_20260204_160952.log (100%)
+ rename Logy/{ => stare}/bd642_deploy_20260204_170008.log (100%)
+[INFO] Git: posielam na GitHub (git push)...
+Enumerating objects: 16, done.
+Counting objects: 100% (16/16), done.
+Delta compression using up to 12 threads
+Compressing objects: 100% (8/8), done.
+Writing objects: 100% (9/9), 3.80 KiB | 1.90 MiB/s, done.
+Total 9 (delta 4), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (4/4), completed with 4 local objects.
+To https://github.com/kvraniak29-blip/upratovanie-642.git
+   e4066e1..087eaa6  main -> main
+[INFO] Git: push úspešný.
+[INFO] Firebase: deploy hostingu (firebase deploy --only hosting)...
+
+[INFO] Firebase: deploy úspešný.
+[INFO] === HOTOVO: PASS – GitHub + Firebase deploy prebehli úspešne. ===
+**********************
+PowerShell transcript end
+End time: 20260204172445
+**********************
