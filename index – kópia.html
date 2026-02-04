@@ -7,9 +7,9 @@
   <title>Upratovací plánovač BD 642</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 
-  <!-- Ikony (GitHub Pages friendly – relatívne cesty) -->
-  <link rel="icon" href="./icon-192.png" />
-  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <!-- (voliteľné) ikona – service worker ju používa ako default -->
+  <link rel="icon" href="/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
 
   <style>
     :root{
@@ -286,9 +286,8 @@
       .badgeNow{margin-left:6px}
     }
   </style>
-
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Upratovací plánovač BD 642">
@@ -555,7 +554,7 @@
           <div style="min-width:0">
             <h2>Nastavenia</h2>
           </div>
-          <span class="spacer"></span>
+          <div class="spacer"></span>
           <span class="tag"><i class="fa-solid fa-user"></i> Prihlásený: <strong id="setMe" style="margin-left:6px">—</strong></span>
         </div>
 
@@ -611,7 +610,7 @@
             Kalendár harmonogramu si môžeš pridať do svojho Google/Outlook kalendára.
           </div>
           <span class="spacer"></span>
-          <a href="./kalendar.ics" class="btn mini" id="btnIcs" download>
+          <a href="kalendar.ics" class="btn mini" id="btnIcs" download>
             <i class="fa-regular fa-calendar"></i> Stiahnuť kalendár (.ics)
           </a>
         </div>
@@ -1410,7 +1409,7 @@
     }
 
     if(typeof window.BD642_ZapnutUpozornenia !== "function"){
-      alert("Push modul nie je načítaný. Skontroluj bd642_firebase_messaging.js.");
+      alert("Push modul nie je načítaný. Skontroluj /bd642_firebase_messaging.js.");
       setPushUi("ERR");
       return;
     }
@@ -1457,7 +1456,7 @@
     $("#loginCode").value = "";
     clearLoginError();
     $("#loginOverlay").classList.remove("hidden");
-    $("#loginOverlay").setAttribute("aria-hidden","false");
+    $("#loginOverlay").setAttribute("aria-hidden","true");
     rerenderAll();
     scheduleNotification();
   }
@@ -1717,6 +1716,7 @@
   }
 
   $("#notifyEnabled").value = prefs.notifyEnabled;
+
   setPushUi("—");
 
   wire();
@@ -1738,30 +1738,25 @@
 })();
 </script>
 
-  <!-- Firebase push modul + Firestore + service worker registrácia (v8) -->
+  <!-- Firebase push modul + Firestore + service worker registrácia -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-  <!-- DÔLEŽITÉ: relatívna cesta (GitHub Pages subcesta) -->
-  <script src="./bd642_firebase_messaging.js"></script>
-
+  <script src="/bd642_firebase_messaging.js"></script>
   <script>
-    // Registrácia service workeru pre Firebase messaging (GitHub Pages friendly)
-    (function () {
-      if (!("serviceWorker" in navigator)) return;
-
+    // Registrácia service workeru pre Firebase messaging (desktop + Android)
+    if ("serviceWorker" in navigator) {
       window.addEventListener("load", function () {
         navigator.serviceWorker
-          .register("./firebase-messaging-sw.js")
+          .register("/firebase-messaging-sw.js")
           .then(function (reg) {
-            console.log("BD642 FCM: SW zaregistrovaný:", reg && reg.scope ? reg.scope : reg);
+            console.log("BD642 FCM: service worker zaregistrovaný.", reg);
           })
           .catch(function (err) {
-            console.error("BD642 FCM: chyba pri registrácii SW:", err);
+            console.error("BD642 FCM: chyba pri registrácii service workeru", err);
           });
       });
-    })();
+    }
   </script>
 </body>
 </html>

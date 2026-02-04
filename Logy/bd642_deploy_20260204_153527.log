@@ -22,3 +22,36 @@ WSManStackVersion: 3.0
 [INFO] Kontrolujem nástroj: Firebase CLI ('firebase')...
 [INFO] Nástroj 'Firebase CLI ('firebase')' ("firebase") OK.
 [INFO] Git: zisťujem zmeny (git status --porcelain)...
+[INFO] Git: pridávam zmeny (git add -A)...
+warning: in the working copy of '.firebase/hosting..cache', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'bd642_firebase_messaging.js.bak_20260203_084604', LF will be replaced by CRLF the next
+time Git touches it
+warning: in the working copy of 'bd642_firebase_messaging.js.bak_20260203_090013', LF will be replaced by CRLF the next
+time Git touches it
+warning: in the working copy of 'firebase-messaging-sw.js.bak_20260203_084604', LF will be replaced by CRLF the next tim
+e Git touches it
+warning: in the working copy of 'firebase-messaging-sw.js.bak_20260203_090013', LF will be replaced by CRLF the next tim
+e Git touches it
+[INFO] Git: vytváram commit: 'BD642 – automatický deploy 2026-02-04 15:35'...
+ delete mode 100644 Logy/stare/bd642_deploy_20260203_094346.log
+ delete mode 100644 Logy/stare/bd642_deploy_20260203_100501.log
+ delete mode 100644 Logy/stare/bd642_deploy_20260203_101732.log
+ delete mode 100644 Logy/stare/bd642_deploy_20260203_103105.log
+ delete mode 100644 Logy/stare/bd642_deploy_20260203_111743.log
+ delete mode 100644 Logy/stare/bd642_fcm_setup_20260203_084604.log
+ delete mode 100644 Logy/stare/bd642_fcm_setup_20260203_090013.log
+ create mode 100644 bd642_firebase_messaging.js.bak_20260203_084604
+ create mode 100644 bd642_firebase_messaging.js.bak_20260203_090013
+ create mode 100644 firebase-messaging-sw.js.bak_20260203_084604
+ create mode 100644 firebase-messaging-sw.js.bak_20260203_090013
+[INFO] Git: posielam na GitHub (git push)...
+
+[INFO] Git: push úspešný.
+[INFO] Firebase: deploy hostingu (firebase deploy --only hosting)...
+
+[INFO] Firebase: deploy úspešný.
+[INFO] === HOTOVO: PASS – GitHub + Firebase deploy prebehli úspešne. ===
+**********************
+PowerShell transcript end
+End time: 20260204153536
+**********************

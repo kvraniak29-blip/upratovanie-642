@@ -1,18 +1,10 @@
 // firebase-messaging-sw.js
-// Service worker pre FCM – BD 642 upratovanie
+// Service worker pre FCM – BD 642
+// Musí byť v tom istom "root scope", kde beží app (na GitHub Pages typicky v subceste projektu).
 
-/* 
-   POZOR:
-   - tento súbor musí byť v koreňovom adresári webu
-     (napr. https://tvoja-domena.sk/firebase-messaging-sw.js)
-   - názov musí byť presne "firebase-messaging-sw.js"
-*/
-
-// Načítanie Firebase (compat verzie)
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging-compat.js");
 
-// Rovnaká config ako v bd642_firebase_messaging.js
 var firebaseConfig = {
   apiKey: "AIzaSyDi9bmbWut2ph5emweyfOoa6FCF8xNUO8I",
   authDomain: "bd-642-26-upratovanie-d2851.firebaseapp.com",
@@ -23,82 +15,80 @@ var firebaseConfig = {
   measurementId: "G-1PB3714CD6"
 };
 
-// Inicializácia Firebase v service workeri
 try {
   if (!firebase.apps || !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
   }
 } catch (e) {
-  console.error("BD642 FCM [SW]: chyba pri firebase.initializeApp:", e);
+  console.error("BD642 FCM [SW]: firebase.initializeApp chyba:", e);
 }
 
-// Získanie messaging inštancie
 var messaging = null;
 try {
-  if (firebase.messaging) {
-    messaging = firebase.messaging();
-  } else {
-    console.warn("BD642 FCM [SW]: firebase.messaging nie je k dispozícii.");
-  }
-} catch (e) {
-  console.error("BD642 FCM [SW]: chyba pri získaní messaging inštancie:", e);
+  if (firebase.messaging) messaging = firebase.messaging();
+} catch (e2) {
+  console.error("BD642 FCM [SW]: firebase.messaging chyba:", e2);
 }
 
-// Background správy z FCM
+function safeGet(obj, path, defVal) {
+  try {
+    var parts = path.split(".");
+    var cur = obj;
+    for (var i = 0; i < parts.length; i++) cur = cur[parts[i]];
+    return (cur === undefined || cur === null) ? defVal : cur;
+  } catch (_) {
+    return defVal;
+  }
+}
+
 if (messaging) {
   messaging.onBackgroundMessage(function (payload) {
-    console.log("BD642 FCM [SW]: prijatá background správa:", payload);
+    console.log("BD642 FCM [SW]: background správa:", payload);
 
-    var notif = payload.notification || {};
-    var data = payload.data || {};
+    var title = safeGet(payload, "notification.title", "BD 642 – upozornenie");
+    var body = safeGet(payload, "notification.body", "");
 
-    var title =
-      notif.title || "BD 642 – nové upozornenie";
+    // preferuj payload.data.url, inak fallback na scope root
+    var url = safeGet(payload, "data.url", null) || safeGet(payload, "data.click_action", null);
+
+    // scope root = miesto, kde je SW zaregistrovaný
+    var scopeRoot = (self.registration && self.registration.scope) ? self.registration.scope : "/";
+
+    var targetUrl = url || scopeRoot;
+
     var options = {
-      body: notif.body || "",
-      icon:
-        notif.icon ||
-        "/icons/icon-192.png", // môžeš neskôr zmeniť na reálnu ikonu
-      badge: notif.badge || "/icons/icon-72.png",
-      data: {
-        url: data.url || data.click_action || "/",
-        rawData: data
-      }
+      body: body,
+      icon: safeGet(payload, "notification.icon", "icon-192.png"),
+      badge: safeGet(payload, "notification.badge", "icon-192.png"),
+      data: { url: targetUrl }
     };
 
     self.registration.showNotification(title, options);
   });
 }
 
-// Klik na notifikáciu – otvorí / zaostrí okno
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
 
   var targetUrl = "/";
   try {
-    if (event.notification && event.notification.data) {
-      targetUrl =
-        event.notification.data.url ||
-        event.notification.data.click_action ||
-        "/";
+    if (event.notification && event.notification.data && event.notification.data.url) {
+      targetUrl = event.notification.data.url;
     }
-  } catch (e) {
-    // necháme default "/"
-  }
+  } catch (_) {}
 
   event.waitUntil(
-    clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then(function (clientList) {
-        for (var i = 0; i < clientList.length; i++) {
-          var client = clientList[i];
-          if (client.url.indexOf(targetUrl) !== -1 && "focus" in client) {
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
+        if (client && "focus" in client) {
+          // ak už máme otvorené okno v rovnakom scope, iba ho zaostríme
+          if (targetUrl && client.url && client.url.indexOf(targetUrl) !== -1) {
             return client.focus();
           }
         }
-        if (clients.openWindow) {
-          return clients.openWindow(targetUrl);
-        }
-      })
+      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+    })
   );
 });
