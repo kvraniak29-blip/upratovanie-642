@@ -580,9 +580,9 @@
               <div style="font-weight:900">Push notifikácie (Firebase)</div>
             </div>
             <span class="spacer"></span>
-            <button class="btn pri" id="btnPushEnable" type="button"
-                    onclick="window.BD642_PushClick && window.BD642_PushClick()">
-              <i class="fa-solid fa-bell"></i> Zapnúť push
+            <!-- úprava: žiadny inline onclick, všetko rieši JS nižšie -->
+            <button class="btn pri" id="btnPushEnable" type="button">
+              <i class="fa-solid fa-bell"></i> <span id="btnPushText">Zapnúť push</span>
             </button>
           </div>
 
@@ -629,12 +629,12 @@
   const $$ = (s)=>Array.from(document.querySelectorAll(s));
   const pad = (n)=>String(n).padStart(2,"0");
   const d0 = (iso)=>new Date(iso+"T00:00:00");
-  const isoDate = (dt)=>\`\${dt.getFullYear()}-\${pad(dt.getMonth()+1)}-\${pad(dt.getDate())}\`;
+  const isoDate = (dt)=>`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
   const nowIso = ()=>new Date().toISOString();
-  const fmtDMY = (iso)=>{ const x=d0(iso); return \`\${pad(x.getDate())}.\${pad(x.getMonth()+1)}.\${x.getFullYear()}\`; };
-  const fmtDMYHM = (dt)=>\`\${pad(dt.getDate())}.\${pad(dt.getMonth()+1)}.\${dt.getFullYear()} \${pad(dt.getHours())}:\${pad(dt.getMinutes())}\`;
+  const fmtDMY = (iso)=>{ const x=d0(iso); return `${pad(x.getDate())}.${pad(x.getMonth()+1)}.${x.getFullYear()}`; };
+  const fmtDMYHM = (dt)=>`${pad(dt.getDate())}.${pad(dt.getMonth()+1)}.${dt.getFullYear()} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
 
-  function escapeHtml(s){ return (s||"").replace(/[&<>'\"]/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;" }[c])); }
+  function escapeHtml(s){ return (s||"").replace(/[&<>'"]/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;" }[c])); }
   function linkify(s){ return s.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'); }
 
   function norm(s){
@@ -877,7 +877,7 @@
 
   function setHeaderState(){
     const meTxt = meFamily ? displayName[meFamily] : "—";
-    $("#txtFamily").textContent = \`Prihlásený: \${meTxt}\`;
+    $("#txtFamily").textContent = `Prihlásený: ${meTxt}`;
     $("#swapMe").textContent = meTxt;
     $("#chatMe").textContent = meTxt;
     $("#setMe").textContent = meTxt;
@@ -898,7 +898,7 @@
 
       const note = b.note ? escapeHtml(b.note) : "—";
       const total = (meFamily && b.family===meFamily) ? countAllForBlock(b.id) : 0;
-      const totalTxt = (meFamily && b.family===meFamily) ? \`\${total}×\` : "—";
+      const totalTxt = (meFamily && b.family===meFamily) ? `${total}×` : "—";
       const remBtnDisabled = (role==="demo" || !meFamily || b.family!==meFamily) ? "disabled" : "";
 
       tr.innerHTML = `
@@ -957,7 +957,7 @@
 
     if (cur){
       $("#badgeNow").style.display = "inline-flex";
-      $("#kpiNow").textContent = \`\${fmtDMY(cur.start)} – \${fmtDMY(cur.end)}\`;
+      $("#kpiNow").textContent = `${fmtDMY(cur.start)} – ${fmtDMY(cur.end)}`;
       $("#kpiFamily").textContent = displayName[cur.family] || cur.family;
     } else {
       $("#badgeNow").style.display = "none";
@@ -987,14 +987,14 @@
     fromList.forEach(b=>{
       const opt1 = document.createElement("option");
       opt1.value = b.id;
-      opt1.textContent = \`\${displayName[b.family] || b.family} • \${fmtDMY(b.start)}–\${fmtDMY(b.end)}\`;
+      opt1.textContent = `${displayName[b.family] || b.family} • ${fmtDMY(b.start)}–${fmtDMY(b.end)}`;
       from.appendChild(opt1);
     });
 
     blocks.forEach(b=>{
       const opt2 = document.createElement("option");
       opt2.value = b.id;
-      opt2.textContent = \`\${displayName[b.family] || b.family} • \${fmtDMY(b.start)}–\${fmtDMY(b.end)}\`;
+      opt2.textContent = `${displayName[b.family] || b.family} • ${fmtDMY(b.start)}–${fmtDMY(b.end)}`;
       to.appendChild(opt2);
     });
 
@@ -1051,7 +1051,7 @@
     }
     chat.forEach(m=>{
       const t = new Date(m.ts);
-      const when = \`\${pad(t.getDate())}.\${pad(t.getMonth()+1)}. \${pad(t.getHours())}:\${pad(t.getMinutes())}\`;
+      const when = `${pad(t.getDate())}.${pad(t.getMonth()+1)}. ${pad(t.getHours())}:${pad(t.getMinutes())}`;
       const div = document.createElement("div");
       div.style.padding = "8px 10px";
       div.style.border = "1px solid var(--line)";
@@ -1059,7 +1059,7 @@
       div.style.margin = "0 0 8px";
       div.style.background = "rgba(0,0,0,.10)";
 
-      const files = (m.files||[]).map(f=>\`<span class="tag" style="border-style:dashed"><i class="fa-regular fa-image"></i> \${escapeHtml(f)}</span>\`).join(" ");
+      const files = (m.files||[]).map(f=>`<span class="tag" style="border-style:dashed"><i class="fa-regular fa-image"></i> ${escapeHtml(f)}</span>`).join(" ");
 
       div.innerHTML = `
         <div style="font-size:11px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -1080,8 +1080,8 @@
     const ps = getPresetsFor(meFamily);
     if(!ps.length) return "vypnuté";
     const p0 = ps[0];
-    const more = ps.length>1 ? \` +\${ps.length-1}\` : "";
-    return \`\${dowToLabel(p0.dow)} \${p0.time}\${more}\`;
+    const more = ps.length>1 ? ` +${ps.length-1}` : "";
+    return `${dowToLabel(p0.dow)} ${p0.time}${more}`;
   }
   function renderPresetState(){
     $("#presetState").innerHTML = `<i class="fa-regular fa-bookmark"></i> Trvalé: ${escapeHtml(presetStateText())}`;
@@ -1374,6 +1374,7 @@
   }
   function clearLoginError(){ $("#loginErr").classList.remove("show"); }
 
+  /* PUSH UI helper – nemení login ani harmonogram, len texty + token */
   function setPushUi(state, token){
     const elState = $("#pushState");
     const elTok = $("#pushTokenShort");
@@ -1390,6 +1391,7 @@
     if(state === "DENIED"){
       elState.className = "tag bad";
       elState.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Push: zamietnuté v prehliadači';
+      elTok.className = "tag";
       elTok.innerHTML = '<i class="fa-solid fa-key"></i> Token: —';
       return;
     }
@@ -1397,6 +1399,7 @@
     if(state === "UNSUPPORTED"){
       elState.className = "tag warn";
       elState.innerHTML = '<i class="fa-solid fa-circle-info"></i> Push: nepodporované na tomto zariadení';
+      elTok.className = "tag";
       elTok.innerHTML = '<i class="fa-solid fa-key"></i> Token: —';
       return;
     }
@@ -1404,38 +1407,69 @@
     if(state === "ERR"){
       elState.className = "tag bad";
       elState.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Push: chyba (pozri konzolu)';
+      elTok.className = "tag";
       elTok.innerHTML = '<i class="fa-solid fa-key"></i> Token: —';
+      return;
+    }
+
+    if(state === "WORKING"){
+      elState.className = "tag";
+      elState.innerHTML = '<i class="fa-solid fa-gear fa-spin"></i> Push: prebieha nastavenie…';
       return;
     }
 
     elState.className = "tag";
     elState.innerHTML = '<i class="fa-regular fa-bell"></i> Push: —';
+    elTok.className = "tag";
     elTok.innerHTML = '<i class="fa-solid fa-key"></i> Token: —';
   }
 
-  async function enablePushFromButton(){
-    if(!("Notification" in window) || !("serviceWorker" in navigator)){
-      alert("Tento prehliadač nepodporuje web push (Notification + Service Worker).");
-      setPushUi("UNSUPPORTED");
-      return;
-    }
+  /* Úpravená funkcia: z pohľadu používateľa sa tlačidlo vždy správa "živé" –
+     zmení text, roztočí ikonu, a vždy aspoň nastaví stav v UI (OK / ERR / ...). */
+  async function enablePushFromButton(btn){
+    try{
+      setPushUi("WORKING");
+      if(btn){
+        btn.disabled = true;
+        const txt = $("#btnPushText");
+        if(txt) txt.textContent = "Zapínam…";
+      }
 
-    if(typeof window.BD642_ZapnutUpozornenia !== "function"){
-      alert("Push modul nie je načítaný. Skontroluj bd642_firebase_messaging.js.");
+      if(!("Notification" in window) || !("serviceWorker" in navigator)){
+        alert("Tento prehliadač nepodporuje web push (Notification + Service Worker).");
+        setPushUi("UNSUPPORTED");
+        return;
+      }
+
+      if(typeof window.BD642_ZapnutUpozornenia !== "function"){
+        alert("Push modul nie je načítaný. Skontroluj bd642_firebase_messaging.js.");
+        setPushUi("ERR");
+        return;
+      }
+
+      const res = await window.BD642_ZapnutUpozornenia();
+      console.log("BD642: výsledok BD642_ZapnutUpozornenia:", res);
+
+      if(res && res.ok && res.token){
+        setPushUi("OK", res.token);
+        return;
+      }
+
+      const dovod = res && res.dovod ? res.dovod : "NEZNAME";
+      if(dovod === "NEPODPOROVANE") setPushUi("UNSUPPORTED");
+      else if(dovod === "NEPOVOLENE") setPushUi("DENIED");
+      else setPushUi("ERR");
+    }catch(e){
+      console.error("BD642: chyba pri zapínaní push notifikácií:", e);
+      alert("Nepodarilo sa zapnúť push notifikácie (pozri konzolu).");
       setPushUi("ERR");
-      return;
+    }finally{
+      if(btn){
+        btn.disabled = false;
+        const txt = $("#btnPushText");
+        if(txt) txt.textContent = "Zapnúť push";
+      }
     }
-
-    const res = await window.BD642_ZapnutUpozornenia();
-    if(res && res.ok && res.token){
-      setPushUi("OK", res.token);
-      return;
-    }
-
-    const dovod = res && res.dovod ? res.dovod : "NEZNAME";
-    if(dovod === "NEPODPOROVANE") setPushUi("UNSUPPORTED");
-    else if(dovod === "NEPOVOLENE") setPushUi("DENIED");
-    else setPushUi("ERR");
   }
 
   function doLoginFromInput(){
@@ -1691,11 +1725,12 @@
       }, 900);
     });
 
+    /* Nové pripnutie na tlačidlo "Zapnúť push" – jediné miesto, kde sa push volá */
     const btnPush = $("#btnPushEnable");
     if(btnPush){
       btnPush.addEventListener("click", (e)=>{
         e.preventDefault();
-        if(window.BD642_PushClick) window.BD642_PushClick();
+        enablePushFromButton(btnPush);
       });
     }
 
@@ -1746,23 +1781,6 @@
 
   $("#notifyEnabled").value = prefs.notifyEnabled;
   setPushUi("—");
-
-  // globálny handler pre inline onclick – volá samotnú funkciu + fallback
-  window.BD642_PushClick = async function(){
-    try{
-      if(typeof enablePushFromButton === "function"){
-        await enablePushFromButton();
-      }else if(typeof window.BD642_ZapnutUpozornenia === "function"){
-        const res = await window.BD642_ZapnutUpozornenia();
-        console.log("BD642: výsledok BD642_ZapnutUpozornenia (bez UI):", res);
-      }else{
-        alert("Push modul nie je načítaný. Skontroluj bd642_firebase_messaging.js.");
-      }
-    }catch(e){
-      console.error("BD642: chyba pri zapínaní push notifikácií:", e);
-      alert("Nepodarilo sa zapnúť push notifikácie (pozri konzolu).");
-    }
-  };
 
   wire();
   rerenderAll();
