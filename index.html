@@ -554,7 +554,7 @@
           <div style="min-width:0">
             <h2>Nastavenia</h2>
           </div>
-          <div class="spacer"></div>
+          <div class="spacer"></span>
           <span class="tag"><i class="fa-solid fa-user"></i> Prihlásený: <strong id="setMe" style="margin-left:6px">—</strong></span>
         </div>
 
@@ -1456,7 +1456,7 @@
     $("#loginCode").value = "";
     clearLoginError();
     $("#loginOverlay").classList.remove("hidden");
-    $("#loginOverlay").setAttribute("aria-hidden","false");
+    $("#loginOverlay").setAttribute("aria-hidden","true");
     rerenderAll();
     scheduleNotification();
   }
@@ -1738,9 +1738,10 @@
 })();
 </script>
 
-  <!-- Firebase push modul + service worker registrácia + VAPID -->
+  <!-- Firebase push modul + Firestore + service worker registrácia -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
   <script src="/bd642_firebase_messaging.js"></script>
   <script>
     // Registrácia service workeru pre Firebase messaging (desktop + Android)
@@ -1750,9 +1751,6 @@
           .register("/firebase-messaging-sw.js")
           .then(function (reg) {
             console.log("BD642 FCM: service worker zaregistrovaný.", reg);
-            if (window.BD642_FCM && typeof window.BD642_FCM.setServiceWorker === "function") {
-              window.BD642_FCM.setServiceWorker(reg);
-            }
           })
           .catch(function (err) {
             console.error("BD642 FCM: chyba pri registrácii service workeru", err);

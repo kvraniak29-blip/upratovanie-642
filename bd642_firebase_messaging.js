@@ -57,11 +57,14 @@
   var fcmSupported = false;
 
   try {
-    if (firebase.messaging && firebase.messaging.isSupported) {
+    if (firebase.messaging && typeof firebase.messaging.isSupported === "function") {
+      // Novšie prostredia – bezpečnejšie zistiť podporu
       fcmSupported = firebase.messaging.isSupported();
     } else if (firebase.messaging) {
-      // starší compat – predpokladáme podporu, ale aj tak prefiltrujeme podľa SW/Push
+      // Starší compat – predpokladáme podporu, ale ešte to odfiltrujeme podľa SW/Push nižšie
       fcmSupported = true;
+    } else {
+      fcmSupported = false;
     }
 
     if (!fcmSupported) {
@@ -74,7 +77,7 @@
     fcmSupported = false;
   }
 
-  // Firestore – VOLITEĽNÉ (mom. ho nenahrávaš, takže db ostane null)
+  // Firestore – VOLITEĽNÉ (ak nemáš firebase-firestore-compat.js, db ostane null)
   var db = null;
   var fieldValue = null;
 
