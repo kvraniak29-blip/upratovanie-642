@@ -335,7 +335,7 @@
           <h2 style="margin:0">Upozornenia</h2>
           <div class="small" id="remTitle">—</div>
           <div class="small" style="margin-top:6px">
-            Lokálne notifikácie fungujú spoľahlivo, keď je stránka (alebo PWA) otvorená. Pre „pravé“ push notifikácie použi tlačidlo <strong>Zapnúť push</strong> v Nastaveniach (podporované len v niektorých prehliadačoch, napr. Chrome na Androide).
+            Lokálne notifikácie fungujú spoľahlivo, keď je stránka (alebo PWA) otvorená. Push notifikácie (Firebase) zapneš v Nastaveniach.
           </div>
         </div>
         <span class="spacer"></span>
@@ -1041,12 +1041,10 @@
       const toB = blocks.find(b=>b.id===s.to);
       const tr = document.createElement("tr");
 
+      const isMine = meFamily && (s.who === meFamily);
       const isTarget = meFamily && s.target && (meFamily === s.target);
-      const isOwner  = meFamily && s.who && (meFamily === s.who);
-      const canRespond = role!=="demo" && isTarget;
-      const canCancel  = role!=="demo" && isOwner && s.status==="Čaká";
-      const disabledAccept  = (s.status!=="Čaká") || !canRespond;
-      const disabledDecline = disabledAccept;
+      const canRespond = role!=="demo" && isTarget && s.status==="Čaká";
+      const canCancel = role!=="demo" && isMine && s.status==="Čaká";
 
       tr.innerHTML = `
         <td><strong>${escapeHtml(displayName[s.who] || s.who)}</strong></td>
@@ -1054,9 +1052,9 @@
         <td>${toB ? (fmtDMY(toB.start)+" – "+fmtDMY(toB.end)) : "—"}</td>
         <td>${escapeHtml(s.status)}${s.applied ? " (aplikované)" : ""}</td>
         <td>
-          <button class="btn mini" ${disabledAccept?"disabled":""} data-accept="${s.id}"><i class="fa-solid fa-check"></i> Prijať</button>
-          <button class="btn mini" ${disabledDecline?"disabled":""} data-decline="${s.id}"><i class="fa-solid fa-xmark"></i> Odmietnuť</button>
-          <button class="btn mini" ${canCancel?"":"disabled"} data-cancel="${s.id}"><i class="fa-solid fa-ban"></i> Zrušiť</button>
+          <button class="btn mini" ${canRespond?"":"disabled"} data-accept="${s.id}"><i class="fa-solid fa-check"></i> Prijať</button>
+          <button class="btn mini" ${canRespond?"":"disabled"} data-decline="${s.id}"><i class="fa-solid fa-xmark"></i> Odmietnuť</button>
+          <button class="btn mini" ${canCancel?"":"disabled"} data-cancel="${s.id}"><i class="fa-solid fa-ban"></i> Zrušiť žiadosť</button>
         </td>
       `;
       sb.appendChild(tr);
@@ -1404,28 +1402,34 @@
   }
 
   async function enablePushFromButton(){
-    if(!("Notification" in window) || !("serviceWorker" in navigator)){
-      alert("Tento prehliadač nepodporuje web push (Notification + Service Worker).");
-      setPushUi("UNSUPPORTED");
-      return;
-    }
+    try{
+      if(!("Notification" in window) || !("serviceWorker" in navigator)){
+        alert("Tento prehliadač nepodporuje web push (Notification + Service Worker).");
+        setPushUi("UNSUPPORTED");
+        return;
+      }
 
-    if(typeof window.BD642_ZapnutUpozornenia !== "function"){
-      alert("Push modul nie je načítaný. Skontroluj bd642_firebase_messaging.js.");
+      if(typeof window.BD642_ZapnutUpozornenia !== "function"){
+        alert("Push modul nie je načítaný. Skontroluj súbor „bd642_firebase_messaging.js“.");
+        setPushUi("ERR");
+        return;
+      }
+
+      const res = await window.BD642_ZapnutUpozornenia();
+      if(res && res.ok && res.token){
+        setPushUi("OK", res.token);
+        return;
+      }
+
+      const dovod = res && res.dovod ? res.dovod : "NEZNAME";
+      if(dovod === "NEPODPOROVANE") setPushUi("UNSUPPORTED");
+      else if(dovod === "NEPOVOLENE") setPushUi("DENIED");
+      else setPushUi("ERR");
+    }catch(err){
+      console.error("BD642 push – chyba pri kliknutí na Zapnúť push:", err);
+      alert("Pri zapínaní push notifikácií nastala chyba. Pozri konzolu (F12 → Console) pre detaily.");
       setPushUi("ERR");
-      return;
     }
-
-    const res = await window.BD642_ZapnutUpozornenia();
-    if(res && res.ok && res.token){
-      setPushUi("OK", res.token);
-      return;
-    }
-
-    const dovod = res && res.dovod ? res.dovod : "NEZNAME";
-    if(dovod === "NEPODPOROVANE") setPushUi("UNSUPPORTED");
-    else if(dovod === "NEPOVOLENE") setPushUi("DENIED");
-    else setPushUi("ERR");
   }
 
   function doLoginFromInput(){
@@ -1600,8 +1604,8 @@
         if(!s || s.status!=="Čaká") return;
         if(role==="demo") return;
         if(!(meFamily && s.who && meFamily===s.who)) return;
-
-        s.status="Zrušené";
+        if(!confirm("Zrušiť túto žiadosť o výmenu?")) return;
+        s.status="Zrušená";
         rerenderAll();
         scheduleNotification();
       }
