@@ -22,3 +22,34 @@ WSManStackVersion: 3.0
 [INFO] Kontrolujem nástroj: Firebase CLI ('firebase')...
 [INFO] Nástroj 'Firebase CLI ('firebase')' ("firebase") OK.
 [INFO] Git: zisťujem zmeny (git status --porcelain)...
+[INFO] Git: pridávam zmeny (git add -A)...
+warning: in the working copy of '.firebase/hosting..cache', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'bd642_firebase_messaging.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'firebase-messaging-sw.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'index – kópia.html', LF will be replaced by CRLF the next time Git touches it
+[INFO] Git: vytváram commit: 'BD642 – automatický deploy 2026-02-04 16:08'...
+[main 5a25aac] BD642 – automatický deploy 2026-02-04 16:08
+ 11 files changed, 2051 insertions(+), 477 deletions(-)
+ create mode 100644 Logy/bd642_deploy_20260204_160824.log
+ delete mode 100644 bd642_firebase_messaging.js.bak_20260203_084604
+ delete mode 100644 bd642_firebase_messaging.js.bak_20260203_090013
+ delete mode 100644 firebase-messaging-sw.js.bak_20260203_084604
+ delete mode 100644 firebase-messaging-sw.js.bak_20260203_090013
+ create mode 100644 "index \342\200\223 k\303\263pia.html"
+[INFO] Git: posielam na GitHub (git push)...
+Compressing objects: 100% (9/9), done.
+Writing objects: 100% (10/10), 6.01 KiB | 1.50 MiB/s, done.
+Total 10 (delta 6), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (6/6), completed with 5 local objects.
+To https://github.com/kvraniak29-blip/upratovanie-642.git
+   7a4bc8f..5a25aac  main -> main
+[INFO] Git: push úspešný.
+[INFO] Firebase: deploy hostingu (firebase deploy --only hosting)...
+
+[INFO] Firebase: deploy úspešný.
+[INFO] === HOTOVO: PASS – GitHub + Firebase deploy prebehli úspešne. ===
+**********************
+PowerShell transcript end
+End time: 20260204160834
+**********************
