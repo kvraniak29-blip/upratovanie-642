@@ -686,6 +686,10 @@
   let role = "user";
   let showMineOnly = false;
 
+  /* TRVALÝ STAV PUSH (nezávislý od prihlásenia) */
+  const PUSH_STATE_KEY = "bd642_push_state_v1";
+  const PUSH_TOKEN_KEY = "bd642_push_token_v1";
+
   const BASE_START = "2026-01-05";
 
   let blocks = [];
@@ -1374,10 +1378,25 @@
   }
   function clearLoginError(){ $("#loginErr").classList.remove("show"); }
 
-  /* PUSH UI helper – nemení login ani harmonogram, len texty + token */
+  /* PUSH UI helper – naviazaný na token, ale stav je uložený v localStorage (trvalý) */
   function setPushUi(state, token){
     const elState = $("#pushState");
     const elTok = $("#pushTokenShort");
+
+    // trvalý zápis stavu (okrem dočasného "WORKING")
+    try {
+      if (state === "OK") {
+        localStorage.setItem(PUSH_STATE_KEY, "OK");
+        if (token) localStorage.setItem(PUSH_TOKEN_KEY, String(token));
+      } else if (state === "DENIED" || state === "UNSUPPORTED" || state === "ERR") {
+        localStorage.setItem(PUSH_STATE_KEY, state);
+        localStorage.removeItem(PUSH_TOKEN_KEY);
+      } else if (state === "—" || !state) {
+        localStorage.removeItem(PUSH_STATE_KEY);
+        localStorage.removeItem(PUSH_TOKEN_KEY);
+      }
+      // "WORKING" je prechodný – nezapisujeme
+    } catch(_){}
 
     if(state === "OK"){
       elState.className = "tag ok";
@@ -1417,16 +1436,18 @@
     if(state === "WORKING"){
       elState.className = "tag";
       elState.innerHTML = '<i class="fa-solid fa-gear fa-spin"></i> Push: prebieha nastavenie…';
+      // token nemeníme
       return;
     }
 
+    // default / "—"
     elState.className = "tag";
     elState.innerHTML = '<i class="fa-regular fa-bell"></i> Push: —';
     elTok.className = "tag";
     elTok.innerHTML = '<i class="fa-solid fa-key"></i> Token: —';
   }
 
-  /* Tlačidlo "Zapnúť push" – naviazané na rodinu + BD642_ZapnutUpozornenia */
+  /* Tlačidlo "Zapnúť push" – naviazané na rodinu + BD642_ZapnutUpozornenia, výsledok sa uloží natrvalo */
   async function enablePushFromButton(btn){
     try{
       if(role === "demo"){
@@ -1463,6 +1484,7 @@
       console.log("BD642: výsledok BD642_ZapnutUpozornenia:", res);
 
       if(res && res.ok && res.token){
+        // OK + token – stav aj token sa uložia do localStorage v setPushUi
         setPushUi("OK", res.token);
         return;
       }
@@ -1514,9 +1536,10 @@
     $("#loginCode").value = "";
     clearLoginError();
     $("#loginOverlay").classList.remove("hidden");
-    $("#loginOverlay").setAttribute("aria-hidden","false");
+    $("#loginOverlay").setAttribute("aria-hidden","true");
     rerenderAll();
     scheduleNotification();
+    // DÔLEŽITÉ: push stav NEČISTÍME – token v SW/Firestore ostáva, notifikácie chodia ďalej.
   }
 
   function wire(){
@@ -1792,7 +1815,21 @@
   }
 
   $("#notifyEnabled").value = prefs.notifyEnabled;
-  setPushUi("—");
+
+  // Obnova push stavu z localStorage – token a stav ostávajú AJ po odhlásení
+  try {
+    const st = localStorage.getItem(PUSH_STATE_KEY);
+    const tok = localStorage.getItem(PUSH_TOKEN_KEY);
+    if (st === "OK" && tok) {
+      setPushUi("OK", tok);
+    } else if (st === "DENIED" || st === "UNSUPPORTED" || st === "ERR") {
+      setPushUi(st);
+    } else {
+      setPushUi("—");
+    }
+  } catch(_){
+    setPushUi("—");
+  }
 
   wire();
   rerenderAll();
