@@ -1,0 +1,92 @@
+/**
+ * BD642 - Firebase Cloud Messaging frontend
+ * Používa sa z index.html cez funkciu window.BD642_ZapnutUpozornenia().
+ */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getMessaging, getToken, isSupported, onMessage } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-messaging.js";
+
+// TODO_BD642_FIREBASE_CONFIG:
+// 1. Vo Firebase konzole otvor:
+//    Nastavenia projektu -> Tvoje aplikácie -> Web -> Konfigurácia.
+// 2. Skopíruj objekt firebaseConfig a vlož ho sem namiesto tohto prázdneho objektu.
+const firebaseConfig = {
+  // sem vlož objekt firebaseConfig, napr.:
+  // apiKey: "...",
+  // authDomain: "...",
+  // projectId: "...",
+  // storageBucket: "...",
+  // messagingSenderId: "...",
+  // appId: "...",
+  // measurementId: "..."
+};
+
+// TODO_BD642_VAPID_KEY:
+// 1. Vo Firebase konzole -> Cloud Messaging -> Web konfigurácia -> Generovať kľúč.
+// 2. Verejný kľúč (Public key) vlož sem namiesto reťazca "TODO_BD642_VAPID_KEY".
+const vapidKey = "TODO_BD642_VAPID_KEY";
+
+async function internZapni() {
+  console.log("[BD642] Spúšťam nastavenie push notifikácií…");
+
+  if (!("Notification" in window)) {
+    console.warn("[BD642] Prehliadač nepodporuje Notification API.");
+    return { ok: false, dovod: "NEPODPOROVANE" };
+  }
+
+  const supported = await isSupported().catch(() => false);
+  if (!supported) {
+    console.warn("[BD642] Firebase Messaging nie je podporovaný v tomto prehliadači.");
+    return { ok: false, dovod: "NEPODPOROVANE" };
+  }
+
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") {
+    console.warn("[BD642] Povolenie na notifikácie nebolo udelené:", perm);
+    return { ok: false, dovod: "NEPOVOLENE" };
+  }
+
+  if (!firebaseConfig || !Object.keys(firebaseConfig).length || vapidKey === "TODO_BD642_VAPID_KEY") {
+    console.warn("[BD642] firebaseConfig alebo VAPID kľúč nie sú doplnené.");
+    return { ok: false, dovod: "KONFIG_NEPLNA" };
+  }
+
+  const app = initializeApp(firebaseConfig);
+  const messaging = getMessaging(app);
+
+  if ("serviceWorker" in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+      console.log("[BD642] Service worker registrovaný:", reg.scope);
+    } catch (err) {
+      console.error("[BD642] Chyba pri registrácii service workera:", err);
+    }
+  }
+
+  const token = await getToken(messaging, { vapidKey }).catch((err) => {
+    console.error("[BD642] Chyba pri získavaní FCM tokenu:", err);
+    throw err;
+  });
+
+  console.log("[BD642] PUSH TOKEN:", token);
+
+  onMessage(messaging, (payload) => {
+    console.log("[BD642] Push správa v popredí:", payload);
+  });
+
+  return { ok: true, token };
+}
+
+export async function BD642_ZapnutUpozornenia() {
+  try {
+    return await internZapni();
+  } catch (err) {
+    console.error("[BD642] Chyba v BD642_ZapnutUpozornenia:", err);
+    return { ok: false, dovod: "CHYBA", detail: String(err) };
+  }
+}
+
+// Sprístupniť funkciu do global scope pre index.html
+if (typeof window !== "undefined") {
+  window.BD642_ZapnutUpozornenia = BD642_ZapnutUpozornenia;
+}
