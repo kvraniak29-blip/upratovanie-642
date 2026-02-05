@@ -35,9 +35,8 @@
   };
 
   // Public VAPID key pre WebPush (musí sedieť s nastavením vo Firebase)
-  // – AKTUALIZOVANÝ podľa Google Cloud konzoly:
   var vapidPublicKey =
-    "BHnnUHjr7ujW1DoObJBbZqL8G9WmJsvmjE859krH6eS3uJ9YUSAex7cnjEJxATx2dXbcPN7Xv9zzppRDE4ZFWZw";
+    "BCioc1pPhHxm66-M7-3ZChPHUz97SPHPudAReJ2P45-ysnVDL_DfnNN6bqHqSIYRqHJ8nZ8sViOTVTFmWHF2AjQ";
 
   // Inicializácia Firebase app (robíme ju opatrne, aby sme neinitovali 2x)
   var app;
@@ -108,7 +107,7 @@
     }
 
     // Ak sme nenašli, zaregistrujeme firebase-messaging-sw.js v root scope
-    // (na Firebase Hostingu to býva ./firebase-messaging-sw.js)
+    // (na GitHub Pages / Firebase Hostingu to býva ./firebase-messaging-sw.js)
     try {
       var reg2 = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
       console.log("BD642 FCM: service worker zaregistrovaný:", reg2);
