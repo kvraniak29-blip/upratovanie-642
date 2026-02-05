@@ -22,3 +22,31 @@ WSManStackVersion: 3.0
 [INFO] Kontrolujem nástroj: Firebase CLI ('firebase')...
 [INFO] Nástroj 'Firebase CLI ('firebase')' ("firebase") OK.
 [INFO] Git: zisťujem zmeny (git status --porcelain)...
+[INFO] Git: pridávam zmeny (git add -A)...
+warning: in the working copy of '.firebase/hosting..cache', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'bd642_firebase_messaging.js', LF will be replaced by CRLF the next time Git touches it
+[INFO] Git: vytváram commit: 'BD642 – automatický deploy 2026-02-05 00:53'...
+[main b2680ba] BD642 – automatický deploy 2026-02-05 00:53
+ 4 files changed, 329 insertions(+), 265 deletions(-)
+ create mode 100644 Logy/bd642_deploy_20260205_005352.log
+[INFO] Git: posielam na GitHub (git push)...
+Enumerating objects: 14, done.
+Counting objects: 100% (14/14), done.
+Delta compression using up to 12 threads
+Compressing objects: 100% (7/7), done.
+Writing objects: 100% (8/8), 6.74 KiB | 2.25 MiB/s, done.
+Total 8 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (3/3), completed with 2 local objects.
+To https://github.com/kvraniak29-blip/upratovanie-642.git
+   ebf7793..b2680ba  main -> main
+[INFO] Git: push úspešný.
+[INFO] Firebase: deploy hostingu (firebase deploy --only hosting)...
+
+Project Console: https://console.firebase.google.com/project/bd-642-26-upratovanie-d2851/overview
+Hosting URL: https://bd-642-26-upratovanie-d2851.web.app
+[INFO] Firebase: deploy úspešný.
+[INFO] === HOTOVO: PASS – GitHub + Firebase deploy prebehli úspešne. ===
+**********************
+PowerShell transcript end
+End time: 20260205005402
+**********************
