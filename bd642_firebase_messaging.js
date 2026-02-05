@@ -122,47 +122,36 @@
   }
 
   /**
-   * Pomocná funkcia: získa (alebo zaregistruje) service worker pre FCM.
-   * Hľadá existujúci firebase-messaging-sw.js, ak nie je, zaregistruje ho.
+   * Zistí, pre ktorú rodinu má byť FCM token uložený (trvalé naviazanie).
+   * - Primárne berie aktuálne prihlásenú rodinu (bd642_meFamily).
+   * - Ak nie je nikto prihlásený, použije poslednú rodinu, pre ktorú bol push zapnutý (bd642_pushFamily).
+   * - Hodnota bd642_pushFamily sa nemaže automaticky pri odhlásení, takže token ostáva naviazaný
+   *   na túto rodinu, kým ho výslovne neodstrániš.
    */
-  async function getBd642ServiceWorkerRegistration() {
-    if (!("serviceWorker" in navigator)) {
-      throw new Error("Service worker nie je podporovaný týmto prehliadačom.");
+  function getRodinaPreToken() {
+    if (typeof localStorage === "undefined") {
+      return null;
     }
 
-    // Skúsime nájsť existujúci SW s naším skriptom
-    var registrations = [];
     try {
-      registrations = await navigator.serviceWorker.getRegistrations();
-    } catch (e) {
-      console.warn("BD642 FCM: nepodarilo sa získať zoznam SW registrácií:", e);
-    }
+      var rodinaPrihlasena = (localStorage.getItem("bd642_meFamily") || "").trim();
+      var rodinaPush = (localStorage.getItem("bd642_pushFamily") || "").trim();
 
-    if (registrations && registrations.length) {
-      for (var i = 0; i < registrations.length; i++) {
-        var reg = registrations[i];
+      var rodina = rodinaPrihlasena || rodinaPush || "";
+
+      // Ak máme aktuálne prihlásenú rodinu, uložíme ju aj ako "trvalú" pre push.
+      if (rodinaPrihlasena && rodinaPrihlasena !== rodinaPush) {
         try {
-          if (
-            reg.active &&
-            reg.active.scriptURL &&
-            reg.active.scriptURL.indexOf("firebase-messaging-sw.js") !== -1
-          ) {
-            return reg;
-          }
-        } catch (_) {
-          // ignorovať
+          localStorage.setItem("bd642_pushFamily", rodinaPrihlasena);
+        } catch (e) {
+          console.warn("BD642 FCM: nepodarilo sa uložiť bd642_pushFamily:", e);
         }
       }
-    }
 
-    // Ak sme nenašli, zaregistrujeme firebase-messaging-sw.js v root scope
-    try {
-      var reg2 = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
-      console.log("BD642 FCM: service worker zaregistrovaný:", reg2);
-      return reg2;
+      return rodina || null;
     } catch (e) {
-      console.error("BD642 FCM: chyba pri registrácii service workera:", e);
-      throw e;
+      console.warn("BD642 FCM: chyba v getRodinaPreToken:", e);
+      return null;
     }
   }
 
@@ -183,12 +172,12 @@
     try {
       var terazIso = new Date().toISOString();
 
-      // Rodina – berieme z localStorage (bd642_meFamily)
+      // Rodina – berieme primárne z bd642_meFamily, inak z poslednej rodiny s push (bd642_pushFamily)
       var rodina = null;
       var rola = null;
       if (typeof localStorage !== "undefined") {
         try {
-          rodina = (localStorage.getItem("bd642_meFamily") || "").trim() || null;
+          rodina = getRodinaPreToken();
           rola = (localStorage.getItem("bd642_role") || "").trim() || null;
         } catch (e) {
           console.warn("BD642 FCM: nepodarilo sa načítať údaje z localStorage:", e);
