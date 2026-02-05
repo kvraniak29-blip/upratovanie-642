@@ -1,3 +1,32 @@
+# Fix-BD642-FCM.ps1
+# Spusť v priečinku, kde je index.html, bd642_firebase_messaging.js, firebase-messaging-sw.js, manifest.webmanifest
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$root = (Get-Location).Path
+$ts = Get-Date -Format "yyyyMMdd-HHmmss"
+$backupDir = Join-Path $root ".backup\$ts"
+New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
+
+function Backup-File($path) {
+  if (Test-Path $path) {
+    Copy-Item -Force $path (Join-Path $backupDir (Split-Path $path -Leaf))
+  }
+}
+
+$bdJs = Join-Path $root "bd642_firebase_messaging.js"
+$swJs = Join-Path $root "firebase-messaging-sw.js"
+$idx  = Join-Path $root "index.html"
+$man  = Join-Path $root "manifest.webmanifest"
+
+Backup-File $bdJs
+Backup-File $swJs
+Backup-File $idx
+Backup-File $man
+
+# --- bd642_firebase_messaging.js (stabilizácia SW ready + rodina token + Android heuristika) ---
+$bd642Content = @'
 /* global firebase */
 
 // bd642_firebase_messaging.js
@@ -248,3 +277,153 @@
     ulozTokenManualne: function (token) { return ulozTokenDoFirestore(token); }
   };
 })();
+'@
+
+# --- firebase-messaging-sw.js (v8 background handler správne) ---
+$swContent = @'
+// firebase-messaging-sw.js
+// Service worker pre FCM – BD 642
+// Musí byť v tom istom "root scope", kde beží app.
+
+importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js");
+importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js");
+
+var firebaseConfig = {
+  apiKey: "AIzaSyDi9bmbWut2ph5emweyfOoa6FCF8xNUO8I",
+  authDomain: "bd-642-26-upratovanie-d2851.firebaseapp.com",
+  projectId: "bd-642-26-upratovanie-d2851",
+  storageBucket: "bd-642-26-upratovanie-d2851.firebasestorage.app",
+  messagingSenderId: "530262860262",
+  appId: "1:530262860262:web:ceef384f16e1a6f7e6f627",
+  measurementId: "G-1PB3714CD6"
+};
+
+try {
+  if (!firebase.apps || !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+} catch (e) {
+  console.error("BD642 FCM [SW]: firebase.initializeApp chyba:", e);
+}
+
+var messaging = null;
+try {
+  if (firebase.messaging) messaging = firebase.messaging();
+} catch (e2) {
+  console.error("BD642 FCM [SW]: firebase.messaging chyba:", e2);
+}
+
+function safeGet(obj, path, defVal) {
+  try {
+    var parts = path.split(".");
+    var cur = obj;
+    for (var i = 0; i < parts.length; i++) {
+      if (cur == null) return defVal;
+      cur = cur[parts[i]];
+    }
+    return (cur === undefined || cur === null) ? defVal : cur;
+  } catch (_) {
+    return defVal;
+  }
+}
+
+// Firebase v8 SW: setBackgroundMessageHandler
+if (messaging && typeof messaging.setBackgroundMessageHandler === "function") {
+  messaging.setBackgroundMessageHandler(function (payload) {
+    var title = safeGet(payload, "notification.title", "BD 642 – upozornenie");
+    var body  = safeGet(payload, "notification.body", "");
+
+    var url =
+      safeGet(payload, "data.url", null) ||
+      safeGet(payload, "data.click_action", null);
+
+    var scopeRoot = (self.registration && self.registration.scope) ? self.registration.scope : "/";
+    var targetUrl = url || scopeRoot;
+
+    var options = {
+      body: body,
+      icon: safeGet(payload, "notification.icon", "icon-192.png"),
+      badge: safeGet(payload, "notification.badge", "icon-192.png"),
+      data: { url: targetUrl }
+    };
+
+    return self.registration.showNotification(title, options);
+  });
+}
+
+// klik
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+
+  var targetUrl = "/";
+  try {
+    if (event.notification && event.notification.data && event.notification.data.url) {
+      targetUrl = event.notification.data.url;
+    }
+  } catch (_) {}
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
+        if (client && "focus" in client) {
+          try {
+            if (targetUrl && client.url && client.url.indexOf(targetUrl) !== -1) {
+              return client.focus();
+            }
+          } catch (_) {}
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+    })
+  );
+});
+'@
+
+# Zapíš súbory (UTF-8 bez BOM)
+[System.IO.File]::WriteAllText($bdJs, $bd642Content, (New-Object System.Text.UTF8Encoding($false)))
+[System.IO.File]::WriteAllText($swJs, $swContent,  (New-Object System.Text.UTF8Encoding($false)))
+
+Write-Host "OK: Prepísané bd642_firebase_messaging.js a firebase-messaging-sw.js" -ForegroundColor Green
+
+# --- manifest.webmanifest: doplň gcm_sender_id (časté pre Android FCM web push) ---
+if (Test-Path $man) {
+  $m = Get-Content -Raw -Encoding UTF8 $man
+  if ($m -notmatch '"gcm_sender_id"\s*:') {
+    # jednoduchý insert pred poslednú }
+    $m2 = $m.TrimEnd()
+    if ($m2.EndsWith("}")) {
+      $m2 = $m2.TrimEnd("`r","`n"," ","`t")
+      $m2 = $m2.Substring(0, $m2.Length-1)
+      if ($m2.TrimEnd() -notmatch ",\s*$") { $m2 += "," }
+      $m2 += "`n  `"gcm_sender_id`": `"103953800507`"`n}"
+      [System.IO.File]::WriteAllText($man, $m2, (New-Object System.Text.UTF8Encoding($false)))
+      Write-Host "OK: Do manifest.webmanifest doplnené gcm_sender_id" -ForegroundColor Green
+    } else {
+      Write-Warning "manifest.webmanifest nemá očakávaný JSON tvar – neupravené."
+    }
+  } else {
+    Write-Host "OK: manifest.webmanifest už obsahuje gcm_sender_id" -ForegroundColor Green
+  }
+} else {
+  Write-Warning "manifest.webmanifest nenájdený – preskakujem."
+}
+
+# --- index.html: iba kontrola includov (nemením HTML, len upozorním) ---
+if (Test-Path $idx) {
+  $h = Get-Content -Raw -Encoding UTF8 $idx
+  $need = @(
+    "https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js",
+    "https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js",
+    "https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js",
+    "./bd642_firebase_messaging.js"
+  )
+  foreach ($n in $need) {
+    if ($h -notmatch [regex]::Escape($n)) {
+      Write-Warning "index.html: chýba include: $n"
+    }
+  }
+}
+
+Write-Host "Hotovo. Backup: $backupDir" -ForegroundColor Cyan
+Write-Host "Pozn.: 'notifikácie na čas pri vypnutom prehliadači' vyžadujú backend, toto skriptom nevyriešiš." -ForegroundColor Yellow
