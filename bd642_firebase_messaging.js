@@ -1,15 +1,30 @@
+/* global firebase */
+
 // bd642_firebase_messaging.js
-// FCM + Firestore pre BD 642 (Firebase JS SDK v8)
-// - kompatibilné pre GitHub Pages (subcesta) aj desktop
-// - zachováva API: window.BD642_ZapnutUpozornenia()
-// - TOKEN sa ukladá do:
-//     rodiny/{rodina}/fcm_tokens/{token}   (ak je známa rodina z loginu)
-//     fcm_tokens/{token}                  (fallback bez rodiny)
+// Klientsky kód pre prácu s Firebase Messaging (FCM)
+// - inicializácia Firebase
+// - získanie / uloženie FCM tokenu
+// - napojenie na service worker (firebase-messaging-sw.js)
+// - export jednoduchých funkcií pre appku (BD642_ZapnutUpozornenia, BD642_FCM.*)
 
 (function () {
   "use strict";
 
-  // --- Firebase config (NEMENIŤ) ---
+  // 1) Kontrola, či je k dispozícii firebase (SDK v8 compat)
+  if (typeof firebase === "undefined") {
+    console.error("BD642 FCM: Knižnica firebase nie je načítaná.");
+    window.BD642_FCM = {
+      podporovane: false,
+      dovod: "FIREBASE_CHYBA",
+      debug: function () {
+        return "Firebase nie je dostupný – skontroluj <script> s firebase SDK.";
+      }
+    };
+    return;
+  }
+
+  // 2) Konfigurácia Firebase pre projekt bd-642-26-upratovanie-d2851
+  //    (hodnoty z Firebase konzoly – nemeniť, pokiaľ ich neprepíšeš aj tam)
   var firebaseConfig = {
     apiKey: "AIzaSyDi9bmbWut2ph5emweyfOoa6FCF8xNUO8I",
     authDomain: "bd-642-26-upratovanie-d2851.firebaseapp.com",
@@ -17,138 +32,148 @@
     storageBucket: "bd-642-26-upratovanie-d2851.firebasestorage.app",
     messagingSenderId: "530262860262",
     appId: "1:530262860262:web:ceef384f16e1a6f7e6f627",
-    measurementId: "G-1PB3714CD6"
+    measurementId: "G-2ZDWWZBKRR"
   };
 
-  // VAPID public key z Firebase (NEMENIŤ)
+  // 3) Public VAPID key pre WebPush (musí sedieť s "current pair" vo Firebase)
   var vapidPublicKey =
-    "BHnnUHjr7ujW1Do0bJBbZqL8G9WmJsVmjE859krH6eS3uJ9YUSAex7cnjEJxATx2dXbcPN7Xv9zzppRDE4ZFWZw";
+    "BHnnUHfjr7ujW1DoObJbBZqL8G9WmJsvmjE859krH6eS3uJ9YUSAex7cnjEJxATx2dXbcPN7Xv9zzppRDE4ZFWZw";
 
-  // --- pomocné výsledky ---
-  function ok(token, extra) {
-    var r = { ok: true, token: token };
-    if (extra && typeof extra === "object") {
-      for (var k in extra) r[k] = extra[k];
-    }
-    return r;
-  }
-  function fail(code, detail) {
-    var r = { ok: false, dovod: code || "INA_CHYBA" };
-    if (detail) r.detail = String(detail);
-    return r;
-  }
-
-  // --- kontrola SDK ---
-  if (typeof firebase === "undefined") {
-    console.error("BD642 FCM: firebase nie je dostupný (skontroluj script includy v index.html).");
-
-    window.BD642_ZapnutUpozornenia = async function () {
-      return fail("FIREBASE_CHYBA");
-    };
-    window.BD642_FCM = {
-      refreshToken: async function () { return null; },
-      ulozTokenManualne: async function () { return null; }
-    };
-    return;
-  }
-
-  // --- init app ---
+  // 4) Inicializácia Firebase App (opatrne, aby sme neinicializovali 2×)
   try {
     if (!firebase.apps || !firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
-      console.log("BD642 FCM: firebase.initializeApp OK");
+      console.log("BD642 FCM: Firebase App inicializovaný (DEFAULT).");
+    } else {
+      console.log("BD642 FCM: Firebase App už existuje, používam existujúci.");
     }
   } catch (e) {
     console.error("BD642 FCM: chyba pri firebase.initializeApp:", e);
   }
 
-  // --- messaging ---
-  var messaging = null;
-  var fcmSupported = false;
-
-  try {
-    if (firebase.messaging && typeof firebase.messaging.isSupported === "function") {
-      fcmSupported = firebase.messaging.isSupported();
-    } else if (firebase.messaging) {
-      fcmSupported = true;
-    } else {
-      fcmSupported = false;
-    }
-
-    if (fcmSupported) {
-      messaging = firebase.messaging();
-    } else {
-      console.warn("BD642 FCM: messaging nie je podporovaný v tomto prostredí.");
-    }
-  } catch (e) {
-    console.error("BD642 FCM: chyba pri získaní messaging inštancie:", e);
-    fcmSupported = false;
-  }
-
-  // --- Firestore ---
+  // 5) Firestore (pre ukladanie FCM tokenov naviazaných na rodinu)
   var db = null;
   var FieldValue = null;
-
   try {
     if (firebase.firestore) {
       db = firebase.firestore();
-      if (firebase.firestore.FieldValue) FieldValue = firebase.firestore.FieldValue;
+      FieldValue = firebase.firestore.FieldValue || null;
       console.log("BD642 FCM: Firestore inicializovaný.");
     } else {
-      console.warn("BD642 FCM: firebase.firestore nie je k dispozícii (chýba firebase-firestore.js).");
+      console.warn("BD642 FCM: firebase.firestore nie je dostupné.");
     }
   } catch (e) {
     console.error("BD642 FCM: chyba pri inicializácii Firestore:", e);
   }
 
-  // --- helper: nájdi / zaregistruj náš SW (aj v subceste) ---
-  function endsWithSw(u) {
-    try {
-      return String(u || "").indexOf("firebase-messaging-sw.js") !== -1;
-    } catch (_) {
-      return false;
+  // 6) Messaging – zisťujeme, či je podporovaný v tomto prostredí
+  var messaging = null;
+  var messagingPodporovane = false;
+  try {
+    if (firebase.messaging && typeof firebase.messaging.isSupported === "function") {
+      messagingPodporovane = firebase.messaging.isSupported();
+    } else if (firebase.messaging) {
+      // staršie SDK môže nemť isSupported – berieme ako podporované
+      messagingPodporovane = true;
+    } else {
+      messagingPodporovane = false;
     }
+
+    if (messagingPodporovane) {
+      messaging = firebase.messaging();
+      console.log("BD642 FCM: Messaging inicializovaný a podporovaný.");
+    } else {
+      console.warn("BD642 FCM: Messaging nie je podporovaný v tomto prehliadači.");
+    }
+  } catch (e) {
+    console.error("BD642 FCM: neočakávaná chyba pri inicializácii messagingu:", e);
+    messagingPodporovane = false;
   }
 
+  // Ak Messaging nie je podporovaný, pripravíme jednoduché API, aby appka nespadla.
+  if (!messagingPodporovane || !messaging) {
+    window.BD642_FCM = {
+      podporovane: false,
+      dovod: "MESSAGING_NEPODPOROVANE",
+      debug: function () {
+        return {
+          messagingPodporovane: messagingPodporovane,
+          dbPripojene: !!db
+        };
+      },
+      refreshToken: async function () {
+        return { ok: false, dovod: "MESSAGING_NEPODPOROVANE" };
+      },
+      ulozTokenManualne: async function () {
+        return { ok: false, dovod: "MESSAGING_NEPODPOROVANE" };
+      }
+    };
+
+    // Aj tak exportneme funkciu BD642_ZapnutUpozornenia, ale vždy vráti chybu
+    window.BD642_ZapnutUpozornenia = async function () {
+      return {
+        ok: false,
+        dovod: "MESSAGING_NEPODPOROVANE"
+      };
+    };
+
+    console.warn("BD642 FCM: Messaging nepodporovaný – končím inicializáciu.");
+    return;
+  }
+
+  /**
+   * Pomocná funkcia: získa (alebo zaregistruje) service worker pre FCM.
+   * Hľadá existujúci firebase-messaging-sw.js, ak nie je, zaregistruje ho.
+   */
   async function getBd642ServiceWorkerRegistration() {
-    if (!("serviceWorker" in navigator)) return null;
+    if (!("serviceWorker" in navigator)) {
+      throw new Error("Service worker nie je podporovaný týmto prehliadačom.");
+    }
 
-    var swUrl = new URL("./firebase-messaging-sw.js", location.href).toString();
-
-    // 1) skús existujúce registrácie
+    // Skúsime nájsť existujúci SW s naším skriptom
+    var registrations = [];
     try {
-      var regs = await navigator.serviceWorker.getRegistrations();
-      for (var i = 0; i < regs.length; i++) {
-        var r = regs[i];
-        var a = r && r.active ? r.active.scriptURL : "";
-        var w = r && r.waiting ? r.waiting.scriptURL : "";
-        var ins = r && r.installing ? r.installing.scriptURL : "";
-        if (endsWithSw(a) || endsWithSw(w) || endsWithSw(ins)) {
-          return r;
+      registrations = await navigator.serviceWorker.getRegistrations();
+    } catch (e) {
+      console.warn("BD642 FCM: nepodarilo sa získať zoznam SW registrácií:", e);
+    }
+
+    if (registrations && registrations.length) {
+      for (var i = 0; i < registrations.length; i++) {
+        var reg = registrations[i];
+        try {
+          if (
+            reg.active &&
+            reg.active.scriptURL &&
+            reg.active.scriptURL.indexOf("firebase-messaging-sw.js") !== -1
+          ) {
+            return reg;
+          }
+        } catch (_) {
+          // ignorovať
         }
       }
+    }
+
+    // Ak sme nenašli, zaregistrujeme firebase-messaging-sw.js v root scope
+    try {
+      var reg2 = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
+      console.log("BD642 FCM: service worker zaregistrovaný:", reg2);
+      return reg2;
     } catch (e) {
-      // ignor
-    }
-
-    // 2) ak nie je, zaregistruj relatívne (scope bude aktuálna zložka)
-    try {
-      var reg = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
-      return reg;
-    } catch (e2) {
-      console.warn("BD642 FCM: nepodarilo sa zaregistrovať SW z bd642_firebase_messaging.js:", e2);
-    }
-
-    // 3) fallback: ready
-    try {
-      var ready = await navigator.serviceWorker.ready;
-      return ready || null;
-    } catch (e3) {
-      return null;
+      console.error("BD642 FCM: chyba pri registrácii service workera:", e);
+      throw e;
     }
   }
 
-  // --- uloženie tokenu do Firestore (TRVALO, podľa rodiny) ---
+  /**
+   * Uloží FCM token do Firestore.
+   *
+   * Token ukladáme:
+   *   - do kolekcie fcm_tokens/{token}
+   *   - ak poznáme rodinu, zároveň do rodiny/{rodina}/fcm_tokens/{token},
+   *     aby sme vedeli poslať jednu správu celej rodine (všetkým zariadeniam).
+   */
   async function ulozTokenDoFirestore(token) {
     if (!db) {
       console.warn("BD642 FCM: Firestore nie je dostupný – token sa neuloží.");
@@ -157,46 +182,55 @@
 
     try {
       var terazIso = new Date().toISOString();
-      var rodina = (localStorage.getItem("bd642_meFamily") || "").trim();
-      var rola = (localStorage.getItem("bd642_role") || "").trim();
+
+      // Rodina – berieme z localStorage (bd642_meFamily)
+      var rodina = null;
+      var rola = null;
+      if (typeof localStorage !== "undefined") {
+        try {
+          rodina = (localStorage.getItem("bd642_meFamily") || "").trim() || null;
+          rola = (localStorage.getItem("bd642_role") || "").trim() || null;
+        } catch (e) {
+          console.warn("BD642 FCM: nepodarilo sa načítať údaje z localStorage:", e);
+        }
+      }
 
       var data = {
         token: token,
-        rodina: rodina || null,
-        rola: rola || null,
+        rodina: rodina,
+        rola: rola,
         userAgent: navigator.userAgent || "",
         jazyk: navigator.language || "",
-        url: location.href || "",
-        aktualizovane: terazIso
+        url: (typeof location !== "undefined" ? location.href : ""),
+        aktualizovane: terazIso,
+        aktualizovane_server: FieldValue && FieldValue.serverTimestamp
+          ? FieldValue.serverTimestamp()
+          : null
       };
 
-      if (FieldValue && typeof FieldValue.serverTimestamp === "function") {
-        data.serverUpdatedAt = FieldValue.serverTimestamp();
-        data.serverCreatedAt = FieldValue.serverTimestamp();
-      }
+      // Hlavná kolekcia všetkých tokenov
+      var tokensCol = db.collection("fcm_tokens");
+      var docRef = tokensCol.doc(token);
+      await docRef.set(data, { merge: true });
 
-      // DÔLEŽITÉ:
-      // ak je rodina zadaná, ukladáme tokeny do:
-      //   rodiny/{rodina}/fcm_tokens/{token}
-      // inak fallback na:
-      //   fcm_tokens/{token}
-      var kolekciaRef;
+      // Ak poznáme rodinu, uložíme token aj pod rodinu/{rodina}/fcm_tokens
       if (rodina) {
-        kolekciaRef = db
+        var docRefRodiny = db
           .collection("rodiny")
           .doc(rodina)
-          .collection("fcm_tokens");
-      } else {
-        kolekciaRef = db.collection("fcm_tokens");
+          .collection("fcm_tokens")
+          .doc(token);
+        await docRefRodiny.set(data, { merge: true });
       }
 
-      await kolekciaRef.doc(token).set(data, { merge: true });
-
       console.log(
-        "BD642 FCM: token uložený do Firestore " +
-        (rodina ? "rodiny/" + rodina + "/fcm_tokens/" : "fcm_tokens/") +
-        token
+        "BD642 FCM: token uložený do Firestore (token=" +
+          token +
+          ", rodina=" +
+          (rodina || "null") +
+          ")"
       );
+
       return { ulozene: true };
     } catch (e) {
       console.error("BD642 FCM: chyba pri ukladaní tokenu do Firestore:", e);
@@ -208,84 +242,169 @@
     }
   }
 
-  // --- hlavná logika zapnutia push (token je trvalý, neviažeme ho na login) ---
+  /**
+   * Vnútorná funkcia na zapnutie upozornení:
+   * - skontroluje podporu Notifikácií, Service Worker a Push
+   * - požiada o povolenie
+   * - získa FCM token (registrácia do WebPush)
+   * - uloží token do Firestore naviazaný na rodinu
+   */
   async function vnutorneZapnutUpozornenia() {
-    // základné API
-    if (typeof Notification === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
-      return fail("NEPODPOROVANE");
-    }
-    if (!fcmSupported || !messaging) {
-      return fail("NEPODPOROVANE");
-    }
-
-    // povolenie notifikácií
-    if (Notification.permission === "denied") return fail("NEPOVOLENE");
-
-    if (Notification.permission !== "granted") {
-      try {
-        var perm = await Notification.requestPermission();
-        if (perm !== "granted") return fail("NEPOVOLENE");
-      } catch (ePerm) {
-        return fail("INA_CHYBA", ePerm);
-      }
+    // 1) Notification API
+    if (typeof Notification === "undefined") {
+      console.warn("BD642 FCM: Notification API nie je dostupné.");
+      return {
+        ok: false,
+        dovod: "NOTIFICATION_API_NEDOSTUPNE"
+      };
     }
 
-    // nájdi náš SW
-    var swReg = await getBd642ServiceWorkerRegistration();
-    if (!swReg) {
-      console.warn("BD642 FCM: nepodarilo sa získať SW registráciu.");
-      return fail("SW_CHYBA");
+    if (Notification.permission === "denied") {
+      console.warn("BD642 FCM: Upozornenia sú blokované (Notification.permission = denied).");
+      return {
+        ok: false,
+        dovod: "NOTIFICATION_ZABLOKOVANE"
+      };
     }
 
-    // getToken
+    // 2) Service worker + PushManager
+    if (!("serviceWorker" in navigator)) {
+      console.warn("BD642 FCM: Service worker nie je podporovaný.");
+      return {
+        ok: false,
+        dovod: "SERVICE_WORKER_NEPODPOROVANY"
+      };
+    }
+    if (!("PushManager" in window)) {
+      console.warn("BD642 FCM: PushManager nie je podporovaný.");
+      return {
+        ok: false,
+        dovod: "PUSHMANAGER_NEPODPOROVANY"
+      };
+    }
+
     try {
-      var opt = { vapidKey: vapidPublicKey, serviceWorkerRegistration: swReg };
-      var token = await messaging.getToken(opt);
-
-      if (!token) return fail("TOKEN_CHYBA");
-
-      var uloz = await ulozTokenDoFirestore(token);
-
-      // Token je platný aj keď Firestore zápis zlyhá – vrátime ok:true + info
-      if (uloz && uloz.ulozene === false) {
-        return ok(token, { upozornenie: "TOKEN_OK_FIRESTORE_FAIL", fire: uloz });
+      // Požiadame o povolenie notifikácií
+      var permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        console.warn(
+          "BD642 FCM: Používateľ nepovolil upozornenia (permission =",
+          permission,
+          ")"
+        );
+        return {
+          ok: false,
+          dovod: "NOTIFICATION_NEPOVOLENE"
+        };
       }
 
-      return ok(token);
-    } catch (eTok) {
-      console.error("BD642 FCM: chyba pri získavaní tokenu:", eTok);
-      return fail("TOKEN_CHYBA", eTok);
-    }
-  }
+      // Získame / zaregistrujeme service worker pre FCM
+      var swReg = await getBd642ServiceWorkerRegistration();
 
-  // foreground správy – len log
-  if (messaging) {
-    try {
-      messaging.onMessage(function (payload) {
-        console.log("BD642 FCM: foreground správa:", payload);
+      // Získame FCM token
+      var token = await messaging.getToken({
+        vapidKey: vapidPublicKey,
+        serviceWorkerRegistration: swReg
       });
-    } catch (eOn) {
-      console.error("BD642 FCM: chyba v onMessage:", eOn);
+
+      if (!token) {
+        console.warn("BD642 FCM: getToken vrátil prázdny token.");
+        return {
+          ok: false,
+          dovod: "TOKEN_PRAZDNY"
+        };
+      }
+
+      console.log("BD642 FCM: získaný token:", token);
+
+      // Uložíme token do Firestore naviazaný na rodinu
+      var uloz = await ulozTokenDoFirestore(token);
+      if (!uloz || !uloz.ulozene) {
+        console.warn(
+          "BD642 FCM: token sa nepodarilo uložiť do Firestore, dovod:",
+          uloz && uloz.dovod
+        );
+        // Aj tak vrátime ok + token – v krajnom prípade vie backend riešiť ručne
+        return {
+          ok: true,
+          token: token,
+          upozornenie: "TOKEN_NEULOZENY_DO_FIRESTORE"
+        };
+      }
+
+      return {
+        ok: true,
+        token: token
+      };
+    } catch (e) {
+      console.error("BD642 FCM: chyba pri zapínaní upozornení:", e);
+      return {
+        ok: false,
+        dovod: "CHYBA_ZAPNUTIA",
+        detail: String(e && e.message ? e.message : e)
+      };
     }
   }
 
-  // --- exporty pre appku ---
+  // --- REAKCIA NA FOREGROUND SPRÁVY ----------------------------
+
+  if (messaging && messagingPodporovane) {
+    messaging.onMessage(function (payload) {
+      try {
+        console.log("BD642 FCM: foreground správa:", payload);
+        // Tu môžeš doplniť vlastné zobrazenie v UI (toasty, badge, atď.)
+      } catch (e) {
+        console.error("BD642 FCM: chyba v onMessage handleri:", e);
+      }
+    });
+  }
+
+  // --- EXPORTY PRE APPKU ---------------------------------------
+
+  // Funkcia, ktorú volá appka pri stlačení "Zapnúť push"
   window.BD642_ZapnutUpozornenia = async function () {
-    try {
-      return await vnutorneZapnutUpozornenia();
-    } catch (e) {
-      console.error("BD642 FCM: neošetrená chyba:", e);
-      return fail("INA_CHYBA", e);
-    }
+    return await vnutorneZapnutUpozornenia();
   };
 
+  // Jednoduché API na manuálne použitie / debug
   window.BD642_FCM = {
-    // znovu vyžiada token (napr. po zmene povolení)
-    refreshToken: async function () {
-      var r = await vnutorneZapnutUpozornenia();
-      return r && r.ok ? r.token : null;
+    podporovane: !!messagingPodporovane,
+    debug: function () {
+      return {
+        messagingPodporovane: messagingPodporovane,
+        dbPripojene: !!db
+      };
     },
-    // manuálne uloženie tokenu, ak by si ho mal z iného zdroja
-    ulozTokenManualne: ulozTokenDoFirestore
+    /**
+     * Vynúti refresh / znovuzískanie tokenu (napr. po zmene nastavení).
+     * Token sa uloží do Firestore tým istým spôsobom (naviazanie na rodinu).
+     */
+    refreshToken: async function () {
+      try {
+        var swReg = await getBd642ServiceWorkerRegistration();
+        var token = await messaging.getToken({
+          vapidKey: vapidPublicKey,
+          serviceWorkerRegistration: swReg
+        });
+        if (!token) {
+          return { ok: false, dovod: "TOKEN_PRAZDNY" };
+        }
+        await ulozTokenDoFirestore(token);
+        return { ok: true, token: token };
+      } catch (e) {
+        console.error("BD642 FCM: chyba pri refreshToken:", e);
+        return {
+          ok: false,
+          dovod: "CHYBA_REFRESH",
+          detail: String(e && e.message ? e.message : e)
+        };
+      }
+    },
+    /**
+     * Priamo uloží token do Firestore (ak by si ho mal z iného zdroja).
+     */
+    ulozTokenManualne: function (token) {
+      return ulozTokenDoFirestore(token);
+    }
   };
 })();
