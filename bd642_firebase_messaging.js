@@ -37,7 +37,7 @@
 
   // 3) Public VAPID key pre WebPush (musí sedieť s "current pair" vo Firebase)
   var vapidPublicKey =
-    "BHnnUHfjr7ujW1DoObJbBZqL8G9WmJsvmjE859krH6eS3uJ9YUSAex7cnjEJxATx2dXbcPN7Xv9zzppRDE4ZFWZw";
+    "BHnnUHjr7ujW1Do0bJBbZqL8G9WmJsVmjE859krH6eS3uJ9YUSAex7cnjEJxATx2dXbcPN7Xv9zzppRDE4ZFWZw";
 
   // 4) Inicializácia Firebase App (opatrne, aby sme neinicializovali 2×)
   try {
