@@ -24,7 +24,7 @@
   }
 
   // 2) Konfigurácia Firebase pre projekt bd-642-26-upratovanie-d2851
-  //    (hodnoty z Firebase konzoly – NEMENIŤ, pokiaľ ich neprepíšeš aj tam)
+  //    (hodnoty z Firebase konzoly – nemeniť, pokiaľ ich neprepíšeš aj tam)
   var firebaseConfig = {
     apiKey: "AIzaSyDi9bmbWut2ph5emweyfOoa6FCF8xNUO8I",
     authDomain: "bd-642-26-upratovanie-d2851.firebaseapp.com",
@@ -70,11 +70,29 @@
   var messaging = null;
   var messagingPodporovane = false;
   try {
-    if (firebase.messaging && typeof firebase.messaging.isSupported === "function") {
-      messagingPodporovane = firebase.messaging.isSupported();
-    } else if (firebase.messaging) {
-      // staršie SDK môže nemť isSupported – berieme ako podporované
-      messagingPodporovane = true;
+    // Heuristika – či prostredie technicky podporuje web push
+    var envSupports =
+      typeof Notification !== "undefined" &&
+      "serviceWorker" in navigator &&
+      "PushManager" in window;
+
+    if (firebase.messaging) {
+      if (typeof firebase.messaging.isSupported === "function") {
+        messagingPodporovane = firebase.messaging.isSupported();
+
+        // Na niektorých Androidoch isSupported() vracia false aj keď push funguje.
+        // Ak vidíme, že prostredie má Notification + SW + PushManager, pustíme to aj tak.
+        if (!messagingPodporovane && envSupports) {
+          console.warn(
+            "BD642 FCM: firebase.messaging.isSupported() vrátilo false, " +
+            "ale prostredie vyzerá, že podporu má – skúšam pokračovať."
+          );
+          messagingPodporovane = true;
+        }
+      } else {
+        // Staršie SDK – spoliehame sa na heuristiku prostredia
+        messagingPodporovane = envSupports;
+      }
     } else {
       messagingPodporovane = false;
     }
@@ -84,36 +102,6 @@
       console.log("BD642 FCM: Messaging inicializovaný a podporovaný.");
     } else {
       console.warn("BD642 FCM: Messaging nie je podporovaný v tomto prehliadači.");
-    }
-
-    // Fallback pre niektoré kombinácie Chrome na Androide:
-    // isSupported() tam vie vrátiť false, aj keď push reálne funguje.
-    // Ak zistíme, že ide o normálny Chrome na Androide (nie WebView),
-    // skúsime messaging povoliť "na silu".
-    if (!messagingPodporovane && firebase.messaging) {
-      try {
-        var ua = (navigator.userAgent || "").toLowerCase();
-        var jeAndroidChrome =
-          ua.indexOf("android") !== -1 &&
-          ua.indexOf("chrome/") !== -1 &&
-          ua.indexOf("wv") === -1; // vylúčime Android WebView
-
-        if (jeAndroidChrome) {
-          messaging = firebase.messaging();
-          messagingPodporovane = true;
-          console.log(
-            "BD642 FCM: isSupported() vrátilo false, ale ide o Chrome na Androide – " +
-              "skúšam messaging aj tak (fallback)."
-          );
-        }
-      } catch (e2) {
-        console.warn(
-          "BD642 FCM: fallback inicializácie messagingu na Androide zlyhal:",
-          e2
-        );
-        messaging = null;
-        messagingPodporovane = false;
-      }
     }
   } catch (e) {
     console.error("BD642 FCM: neočakávaná chyba pri inicializácii messagingu:", e);
@@ -222,10 +210,9 @@
         jazyk: navigator.language || "",
         url: (typeof location !== "undefined" ? location.href : ""),
         aktualizovane: terazIso,
-        aktualizovane_server:
-          FieldValue && FieldValue.serverTimestamp
-            ? FieldValue.serverTimestamp()
-            : null
+        aktualizovane_server: FieldValue && FieldValue.serverTimestamp
+          ? FieldValue.serverTimestamp()
+          : null
       };
 
       // Hlavná kolekcia všetkých tokenov
@@ -259,51 +246,6 @@
         dovod: "FIRESTORE_CHYBA",
         detail: String(e && e.message ? e.message : e)
       };
-    }
-  }
-
-  /**
-   * Pomocná funkcia: získa (alebo zaregistruje) service worker pre FCM.
-   * Hľadá existujúci firebase-messaging-sw.js, ak nie je, zaregistruje ho.
-   */
-  async function getBd642ServiceWorkerRegistration() {
-    if (!("serviceWorker" in navigator)) {
-      throw new Error("Service worker nie je podporovaný týmto prehliadačom.");
-    }
-
-    // Skúsime nájsť existujúci SW s naším skriptom
-    var registrations = [];
-    try {
-      registrations = await navigator.serviceWorker.getRegistrations();
-    } catch (e) {
-      console.warn("BD642 FCM: nepodarilo sa získať zoznam SW registrácií:", e);
-    }
-
-    if (registrations && registrations.length) {
-      for (var i = 0; i < registrations.length; i++) {
-        var reg = registrations[i];
-        try {
-          if (
-            reg.active &&
-            reg.active.scriptURL &&
-            reg.active.scriptURL.indexOf("firebase-messaging-sw.js") !== -1
-          ) {
-            return reg;
-          }
-        } catch (_) {
-          // ignorovať
-        }
-      }
-    }
-
-    // Ak sme nenašli, zaregistrujeme firebase-messaging-sw.js v root scope
-    try {
-      var reg2 = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
-      console.log("BD642 FCM: service worker zaregistrovaný:", reg2);
-      return reg2;
-    } catch (e) {
-      console.error("BD642 FCM: chyba pri registrácii service workera:", e);
-      throw e;
     }
   }
 
@@ -408,6 +350,51 @@
         dovod: "CHYBA_ZAPNUTIA",
         detail: String(e && e.message ? e.message : e)
       };
+    }
+  }
+
+  /**
+   * Pomocná funkcia: získa (alebo zaregistruje) service worker pre FCM.
+   * Hľadá existujúci firebase-messaging-sw.js, ak nie je, zaregistruje ho.
+   */
+  async function getBd642ServiceWorkerRegistration() {
+    if (!("serviceWorker" in navigator)) {
+      throw new Error("Service worker nie je podporovaný týmto prehliadačom.");
+    }
+
+    // Skúsime nájsť existujúci SW s naším skriptom
+    var registrations = [];
+    try {
+      registrations = await navigator.serviceWorker.getRegistrations();
+    } catch (e) {
+      console.warn("BD642 FCM: nepodarilo sa získať zoznam SW registrácií:", e);
+    }
+
+    if (registrations && registrations.length) {
+      for (var i = 0; i < registrations.length; i++) {
+        var reg = registrations[i];
+        try {
+          if (
+            reg.active &&
+            reg.active.scriptURL &&
+            reg.active.scriptURL.indexOf("firebase-messaging-sw.js") !== -1
+          ) {
+            return reg;
+          }
+        } catch (_) {
+          // ignorovať
+        }
+      }
+    }
+
+    // Ak sme nenašli, zaregistrujeme firebase-messaging-sw.js v root scope
+    try {
+      var reg2 = await navigator.serviceWorker.register("./firebase-messaging-sw.js");
+      console.log("BD642 FCM: service worker zaregistrovaný:", reg2);
+      return reg2;
+    } catch (e) {
+      console.error("BD642 FCM: chyba pri registrácii service workera:", e);
+      throw e;
     }
   }
 

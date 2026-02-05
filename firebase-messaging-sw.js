@@ -1,7 +1,7 @@
 // firebase-messaging-sw.js
 // Service worker pre FCM – BD 642
 // Musí byť v tom istom "root scope", kde beží app
-// (na GitHub Pages / Firebase Hostingu v koreňovom "public").
+// (na Firebase Hostingu v koreňovom "public").
 
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js");
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js");
@@ -21,7 +21,7 @@ var firebaseConfig = {
 try {
   if (!firebase.apps || !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
-    console.log("BD642 FCM [SW]: firebase.initializeApp OK");
+    // console.log("BD642 FCM [SW]: firebase.initializeApp OK");
   }
 } catch (e) {
   console.error("BD642 FCM [SW]: firebase.initializeApp chyba:", e);
@@ -31,7 +31,7 @@ var messaging = null;
 try {
   if (firebase.messaging) {
     messaging = firebase.messaging();
-    console.log("BD642 FCM [SW]: messaging inicializovaný.");
+    // console.log("BD642 FCM [SW]: messaging inicializovaný.");
   } else {
     console.warn("BD642 FCM [SW]: firebase.messaging nie je dostupný.");
   }
@@ -54,10 +54,12 @@ function safeGet(obj, path, defVal) {
   }
 }
 
-// Background správy (push, keď app nie je v popredí)
-if (messaging) {
-  messaging.onBackgroundMessage(function (payload) {
-    console.log("BD642 FCM [SW]: background správa:", payload);
+// BACKGROUND SPRÁVY (push, keď app nie je v popredí)
+// POZOR: pre Firebase v8 sa používa setBackgroundMessageHandler,
+// nie onBackgroundMessage.
+if (messaging && typeof messaging.setBackgroundMessageHandler === "function") {
+  messaging.setBackgroundMessageHandler(function (payload) {
+    // console.log("BD642 FCM [SW]: background správa:", payload);
 
     var title = safeGet(payload, "notification.title", "BD 642 – upozornenie");
     var body = safeGet(payload, "notification.body", "");
@@ -82,8 +84,10 @@ if (messaging) {
       data: { url: targetUrl }
     };
 
-    self.registration.showNotification(title, options);
+    return self.registration.showNotification(title, options);
   });
+} else {
+  console.warn("BD642 FCM [SW]: setBackgroundMessageHandler nie je dostupný.");
 }
 
 // Klik na notifikáciu – otvorí / zaostrí okno appky
