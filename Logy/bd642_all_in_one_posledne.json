@@ -1,0 +1,87 @@
+[
+  {
+    "time": "2026-02-07 00:57:42",
+    "level": "INFO",
+    "msg": "START: BD642 all-in-one (koreň: C:\\Users\\kikov\\BD 642-26 Upratovanie\\upratovanie 642)"
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "WARN",
+    "msg": "Záloha sa nepodarila: Exception calling \"CreateFromDirectory\" with \"2\" argument(s): \"The process cannot access the file 'C:\\Users\\kikov\\BD 642-26 Upratovanie\\upratovanie 642\\Zálohy\\backup_bd642_20260207-005742_4686.zip' because it is being used by another process.\""
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "PASS",
+    "msg": "Manifest prepísaný (scope + start_url + id + icons)."
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "PASS",
+    "msg": "Manifest obsahuje scope"
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "PASS",
+    "msg": "Ikona icon-192.png existuje"
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "PASS",
+    "msg": "Ikona icon-512.png existuje"
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "PASS",
+    "msg": "index.html existuje"
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "PASS",
+    "msg": "firebase-messaging-sw.js existuje"
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "PASS",
+    "msg": "bd642_firebase_messaging.js existuje"
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "PASS",
+    "msg": "index.html odkazuje na manifest.webmanifest"
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "PASS",
+    "msg": "index.html registruje firebase-messaging-sw.js"
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "PASS",
+    "msg": "FCM skript inicializuje Firebase"
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "PASS",
+    "msg": "FCM skript obsahuje BD642_ZapnutUpozornenia"
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "PASS",
+    "msg": "SW používa importScripts (v8 pattern)"
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "PASS",
+    "msg": "SW má background handler (setBackgroundMessageHandler/onBackgroundMessage)"
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "INFO",
+    "msg": "---- ZHRNUTIE ----"
+  },
+  {
+    "time": "2026-02-07 00:57:43",
+    "level": "PASS",
+    "msg": "PASS: všetko vyzerá OK. Teraz otestuj PWA inštaláciu a push na HTTPS (GitHub Pages/Firebase Hosting)."
+  }
+]

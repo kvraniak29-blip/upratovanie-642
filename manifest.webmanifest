@@ -14,5 +14,18 @@
   ],
   "background_color": "#0b1220",
   "theme_color": "#0b1220",
-  "icons": []
+  "icons": [
+    {
+      "purpose": "any",
+      "sizes": "192x192",
+      "type": "image/png",
+      "src": "./icon-192.png"
+    },
+    {
+      "purpose": "any",
+      "sizes": "512x512",
+      "type": "image/png",
+      "src": "./icon-512.png"
+    }
+  ]
 }
