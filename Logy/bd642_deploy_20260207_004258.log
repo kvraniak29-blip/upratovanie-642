@@ -1,12 +1,12 @@
 **********************
 PowerShell transcript start
-Start time: 20260206195129
+Start time: 20260207004258
 Username: NTBKRISTIAN\kikov
 RunAs User: NTBKRISTIAN\kikov
 Configuration Name: 
 Machine: NTBKRISTIAN (Microsoft Windows NT 10.0.26200.0)
-Host Application: C:\Program Files\PowerShell\7\pwsh.dll
-Process ID: 30376
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll C:\Users\kikov\BD 642-26 Upratovanie\upratovanie 642\deploy.ps1
+Process ID: 28808
 PSVersion: 7.5.4
 PSEdition: Core
 GitCommitId: 7.5.4
@@ -17,6 +17,8 @@ PSRemotingProtocolVersion: 2.3
 SerializationVersion: 1.1.0.1
 WSManStackVersion: 3.0
 **********************
-- Preparing the list of your Firebase projects
-Ôťö Preparing the list of your Firebase projects
-Nastavujem projekt (podľa .firebaserc)...
+[INFO] Kontrolujem nástroj: Git...
+[INFO] Nástroj 'Git' ("git") OK.
+[INFO] Kontrolujem nástroj: Firebase CLI ('firebase')...
+[INFO] Nástroj 'Firebase CLI ('firebase')' ("firebase") OK.
+[INFO] Git: zisťujem zmeny (git status --porcelain)...

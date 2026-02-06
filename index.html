@@ -1877,3 +1877,12 @@
   </script>
 </body>
 </html>
+<script>
+/* ===== BD642 AUTO SYNC ===== */
+setInterval(() => {
+  if(navigator.onLine && typeof BD642_Sync === "function"){
+    console.debug("BD642 auto-sync");
+    BD642_Sync();
+  }
+}, 300000); // 5 minút
+</script>

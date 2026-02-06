@@ -1,0 +1,7 @@
+[2026-02-07 00:32:10] BD642: Oprava manifestu + ikon (root: C:\Users\kikov\BD 642-26 Upratovanie\upratovanie 642)
+[2026-02-07 00:32:10] PASS: manifest.webmanifest existuje
+[2026-02-07 00:32:10] FAIL: icon-192.png chýba (nevytvorím ikony bez zdroja)
+[2026-02-07 00:32:10] PASS: manifest.webmanifest prepísaný (scope + start_url + id + icons).
+[2026-02-07 00:32:10] PASS: Manifest obsahuje scope
+[2026-02-07 00:32:10] ---- Zhrnutie ----
+[2026-02-07 00:32:10] FAIL: Niečo chýba alebo sa nepodarilo opraviť (pozri FAIL riadky vyššie).

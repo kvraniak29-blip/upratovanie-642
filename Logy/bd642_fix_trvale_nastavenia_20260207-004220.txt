@@ -1,0 +1,9 @@
+[2026-02-07 00:42:20] BD642: Štart opravy trvalých nastavení + sync + UI
+[2026-02-07 00:42:20] Záloha vytvorená: C:\Users\kikov\BD 642-26 Upratovanie\upratovanie 642\Zálohy\backup_fix_trvale_20260207-004220.zip
+[2026-02-07 00:42:21] index.html: prefs už existujú – preskakujem
+[2026-02-07 00:42:21] index.html: pridaný auto-sync (5 min)
+[2026-02-07 00:42:21] ---- ZHRNUTIE ----
+[2026-02-07 00:42:21] Trvalé nastavenia: OK
+[2026-02-07 00:42:21] Auto sync: OK
+[2026-02-07 00:42:21] Responzívny dialóg: OK
+[2026-02-07 00:42:21] Hotovo – sprav refresh stránky

@@ -1,0 +1,10 @@
+[2026-02-07 00:39:05] BD642: Oprava PWA manifestu + ikon (root: C:\Users\kikov\BD 642-26 Upratovanie\upratovanie 642)
+[2026-02-07 00:39:05] PASS: manifest.webmanifest existuje
+[2026-02-07 00:39:05] FAIL: Nepodarilo sa vytvoriť ikonu icon-192.png: Method invocation failed because [System.Object[]] does not contain a method named 'op_Subtraction'.
+[2026-02-07 00:39:05] FAIL: Nepodarilo sa vytvoriť ikonu icon-512.png: Method invocation failed because [System.Object[]] does not contain a method named 'op_Subtraction'.
+[2026-02-07 00:39:05] PASS: Manifest prepísaný (scope + start_url + id + icons)
+[2026-02-07 00:39:05] PASS: Manifest obsahuje scope
+[2026-02-07 00:39:05] FAIL: Ikona icon-192.png chýba
+[2026-02-07 00:39:05] FAIL: Ikona icon-512.png chýba
+[2026-02-07 00:39:05] —–– Zhrnutie —––
+[2026-02-07 00:39:05] FAIL: Niečo zlyhalo – pozri FAIL riadky vyššie.
