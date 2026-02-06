@@ -22,3 +22,34 @@ WSManStackVersion: 3.0
 [INFO] Kontrolujem nástroj: Firebase CLI ('firebase')...
 [INFO] Nástroj 'Firebase CLI ('firebase')' ("firebase") OK.
 [INFO] Git: zisťujem zmeny (git status --porcelain)...
+[INFO] Git: pridávam zmeny (git add -A)...
+warning: in the working copy of '.firebase/hosting..cache', LF will be replaced by CRLF the next time Git touches it
+[INFO] Git: vytváram commit: 'BD642 – automatický deploy 2026-02-07 00:58'...
+[main f93445f] BD642 – automatický deploy 2026-02-07 00:58
+ 13 files changed, 333 insertions(+), 42 deletions(-)
+ create mode 100644 Logy/bd642_all_in_one_20260207-005742.json
+ create mode 100644 Logy/bd642_all_in_one_20260207-005742.txt
+ create mode 100644 Logy/bd642_all_in_one_posledne.json
+ create mode 100644 Logy/bd642_all_in_one_posledne.txt
+ rename Logy/{bd642_deploy_20260207_004258.log => bd642_deploy_20260207_005800.log} (94%)
+ create mode 100644 Logy/stare/bd642_deploy_20260207_004258.log
+ rename Logy/{ => stare}/bd642_fix_trvale_nastavenia_20260207-004220.txt (100%)
+ create mode 100644 Logy/stare/bd642_fix_trvale_nastavenia_20260207-004458.txt
+ create mode 100644 "Z\303\241lohy/backup_bd642_20260207-005742_4686.zip"
+ create mode 100644 icon-192.png
+ create mode 100644 icon-512.png
+[INFO] Git: posielam na GitHub (git push)...
+Writing objects: 100% (15/15), 13.34 MiB | 5.51 MiB/s, done.
+Total 15 (delta 7), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (7/7), completed with 5 local objects.
+To https://github.com/kvraniak29-blip/upratovanie-642.git
+   ff3f863..f93445f  main -> main
+[INFO] Git: push úspešný.
+[INFO] Firebase: deploy hostingu (firebase deploy --only hosting)...
+
+[INFO] Firebase: deploy úspešný.
+[INFO] === HOTOVO: PASS – GitHub + Firebase deploy prebehli úspešne. ===
+**********************
+PowerShell transcript end
+End time: 20260207005817
+**********************
