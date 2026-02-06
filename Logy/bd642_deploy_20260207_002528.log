@@ -1,12 +1,12 @@
 **********************
 PowerShell transcript start
-Start time: 20260206222123
+Start time: 20260207002528
 Username: NTBKRISTIAN\kikov
 RunAs User: NTBKRISTIAN\kikov
 Configuration Name: 
 Machine: NTBKRISTIAN (Microsoft Windows NT 10.0.26200.0)
 Host Application: C:\Program Files\PowerShell\7\pwsh.dll C:\Users\kikov\BD 642-26 Upratovanie\upratovanie 642\deploy.ps1
-Process ID: 3700
+Process ID: 31680
 PSVersion: 7.5.4
 PSEdition: Core
 GitCommitId: 7.5.4
