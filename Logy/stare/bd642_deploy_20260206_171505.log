@@ -1,0 +1,55 @@
+**********************
+PowerShell transcript start
+Start time: 20260206171505
+Username: NTBKRISTIAN\kikov
+RunAs User: NTBKRISTIAN\kikov
+Configuration Name: 
+Machine: NTBKRISTIAN (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll C:\Users\kikov\BD 642-26 Upratovanie\upratovanie 642\deploy.ps1
+Process ID: 18580
+PSVersion: 7.5.4
+PSEdition: Core
+GitCommitId: 7.5.4
+OS: Microsoft Windows 10.0.26200
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+[INFO] Kontrolujem nástroj: Git...
+[INFO] Nástroj 'Git' ("git") OK.
+[INFO] Kontrolujem nástroj: Firebase CLI ('firebase')...
+[INFO] Nástroj 'Firebase CLI ('firebase')' ("firebase") OK.
+[INFO] Git: zisťujem zmeny (git status --porcelain)...
+[INFO] Git: pridávam zmeny (git add -A)...
+warning: in the working copy of '.firebase/hosting..cache', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'bd642_firebase_messaging.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'firebase-messaging-sw.js', LF will be replaced by CRLF the next time Git touches it
+[INFO] Git: vytváram commit: 'BD642 – automatický deploy 2026-02-06 17:15'...
+[main 725c332] BD642 – automatický deploy 2026-02-06 17:15
+ 11 files changed, 404 insertions(+), 876 deletions(-)
+ delete mode 100644 Fix-BD642-FCM.ps1
+ delete mode 100644 Logy/bd642_deploy_20260205_020317.log
+ delete mode 100644 Logy/bd642_deploy_20260205_020630.log
+ delete mode 100644 Logy/bd642_deploy_20260205_022640.log
+ delete mode 100644 Logy/bd642_deploy_20260205_024430.log
+ delete mode 100644 Logy/bd642_deploy_20260205_024637.log
+ delete mode 100644 Logy/bd642_deploy_20260205_033604.log
+ rename Logy/{bd642_deploy_20260205_051112.log => bd642_deploy_20260206_171505.log} (94%)
+[INFO] Git: posielam na GitHub (git push)...
+Compressing objects: 100% (7/7), done.
+Writing objects: 100% (8/8), 8.07 KiB | 2.69 MiB/s, done.
+Total 8 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
+To https://github.com/kvraniak29-blip/upratovanie-642.git
+   f705d16..725c332  main -> main
+[INFO] Git: push úspešný.
+[INFO] Firebase: deploy hostingu (firebase deploy --only hosting)...
+
+[INFO] Firebase: deploy úspešný.
+[INFO] === HOTOVO: PASS – GitHub + Firebase deploy prebehli úspešne. ===
+**********************
+PowerShell transcript end
+End time: 20260206171529
+**********************
