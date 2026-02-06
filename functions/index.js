@@ -9,7 +9,6 @@ admin.initializeApp();
 const db = admin.firestore();
 
 const DEFAULT_APP_URL = "https://bd-642-26-upratovanie-d2851.web.app/";
-const TEST_KEY = process.env.BD642_TEST_KEY || "";
 
 function nowTs() {
   return admin.firestore.Timestamp.fromDate(new Date());
@@ -41,7 +40,6 @@ async function posliMulticast(rodina, payload) {
   };
 
   const resp = await admin.messaging().sendEachForMulticast(message);
-
   const failedTokens = [];
   resp.responses.forEach((r, i) => { if (!r.success) failedTokens.push(tokens[i]); });
 
@@ -81,7 +79,6 @@ exports.sendScheduledNotifications = onSchedule("every 5 minutes", async () => {
     };
 
     const result = await posliMulticast(rodina, payload);
-
     batch.update(doc.ref, { sentAt: nowTs(), sendResult: result, processedAt: nowTs() });
 
     processed++;
@@ -110,25 +107,15 @@ exports.sendChatNotification = onDocumentCreated("rodiny/{rodina}/chat/{msgId}",
   };
 
   const result = await posliMulticast(rodina, payload);
-
   await doc.ref.set({ push: { sentAt: nowTs(), result } }, { merge: true });
   return null;
 });
 
-// (3) Test push – HTTPS endpoint (bez loginu) s kľúčom
+// (3) HTTPS test – priamy push (bez kľúča, len na testovanie)
 exports.sendTestNotification = onRequest(async (req, res) => {
   try {
-    const k = (req.query.k || "").toString();
-    if (!TEST_KEY || k !== TEST_KEY) {
-      res.status(403).json({ ok: false, dovod: "ZLY_KLUC" });
-      return;
-    }
-
     const rodina = (req.query.rodina || "").toString().trim();
-    if (!rodina) {
-      res.status(400).json({ ok: false, dovod: "CHYBA_RODINA" });
-      return;
-    }
+    if (!rodina) return res.status(400).json({ ok: false, dovod: "CHYBA_RODINA" });
 
     const title = (req.query.title || "BD642 – test").toString();
     const body  = (req.query.body  || "Test push z backendu.").toString();
@@ -141,8 +128,31 @@ exports.sendTestNotification = onRequest(async (req, res) => {
     };
 
     const result = await posliMulticast(rodina, payload);
-    res.status(200).json({ ok: true, rodina, result });
+    return res.status(200).json({ ok: true, rodina, result });
   } catch (e) {
-    res.status(500).json({ ok: false, chyba: String(e && e.message ? e.message : e) });
+    return res.status(500).json({ ok: false, chyba: String(e && e.message ? e.message : e) });
+  }
+});
+
+// (4) HTTPS test – simuluje chat push (bez zápisu do Firestore)
+exports.sendChatTestNotification = onRequest(async (req, res) => {
+  try {
+    const rodina = (req.query.rodina || "").toString().trim();
+    if (!rodina) return res.status(400).json({ ok: false, dovod: "CHYBA_RODINA" });
+
+    const from = (req.query.from || "Backend").toString();
+    const text = (req.query.text || "Test chat push").toString();
+    const url  = (req.query.url  || `${DEFAULT_APP_URL}#chat`).toString();
+
+    const payload = {
+      notification: { title: `Chat – ${rodina}`, body: `${from}: ${text}` },
+      data: { kind: "chat", rodina, url },
+      webpush: { fcmOptions: { link: url } }
+    };
+
+    const result = await posliMulticast(rodina, payload);
+    return res.status(200).json({ ok: true, rodina, result });
+  } catch (e) {
+    return res.status(500).json({ ok: false, chyba: String(e && e.message ? e.message : e) });
   }
 });
