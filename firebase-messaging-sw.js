@@ -1,10 +1,12 @@
 // firebase-messaging-sw.js
 // Service worker pre FCM – BD 642
-// Musí byť v tom istom "root scope", kde beží app.
+// Musí byť v tom istom "root scope", kde beží app
+// (na GitHub Pages / Firebase Hostingu v koreňovom "public").
 
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js");
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js");
 
+// Konfigurácia pre projekt bd-642-26-upratovanie-d2851
 var firebaseConfig = {
   apiKey: "AIzaSyDi9bmbWut2ph5emweyfOoa6FCF8xNUO8I",
   authDomain: "bd-642-26-upratovanie-d2851.firebaseapp.com",
@@ -15,9 +17,11 @@ var firebaseConfig = {
   measurementId: "G-1PB3714CD6"
 };
 
+// Bezpečná inicializácia Firebase vo worker-i
 try {
   if (!firebase.apps || !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
+    console.log("BD642 FCM [SW]: firebase.initializeApp OK");
   }
 } catch (e) {
   console.error("BD642 FCM [SW]: firebase.initializeApp chyba:", e);
@@ -25,11 +29,17 @@ try {
 
 var messaging = null;
 try {
-  if (firebase.messaging) messaging = firebase.messaging();
+  if (firebase.messaging) {
+    messaging = firebase.messaging();
+    console.log("BD642 FCM [SW]: messaging inicializovaný.");
+  } else {
+    console.warn("BD642 FCM [SW]: firebase.messaging nie je dostupný.");
+  }
 } catch (e2) {
   console.error("BD642 FCM [SW]: firebase.messaging chyba:", e2);
 }
 
+// Helper na bezpečné čítanie z payloadu
 function safeGet(obj, path, defVal) {
   try {
     var parts = path.split(".");
@@ -44,17 +54,25 @@ function safeGet(obj, path, defVal) {
   }
 }
 
-// Firebase v8 SW: setBackgroundMessageHandler
-if (messaging && typeof messaging.setBackgroundMessageHandler === "function") {
-  messaging.setBackgroundMessageHandler(function (payload) {
-    var title = safeGet(payload, "notification.title", "BD 642 – upozornenie");
-    var body  = safeGet(payload, "notification.body", "");
+// Background správy (push, keď app nie je v popredí)
+if (messaging) {
+  messaging.onBackgroundMessage(function (payload) {
+    console.log("BD642 FCM [SW]: background správa:", payload);
 
+    var title = safeGet(payload, "notification.title", "BD 642 – upozornenie");
+    var body = safeGet(payload, "notification.body", "");
+
+    // preferuj data.url, fallback na click_action
     var url =
       safeGet(payload, "data.url", null) ||
       safeGet(payload, "data.click_action", null);
 
-    var scopeRoot = (self.registration && self.registration.scope) ? self.registration.scope : "/";
+    // scope root = miesto, kde je SW zaregistrovaný
+    var scopeRoot =
+      (self.registration && self.registration.scope)
+        ? self.registration.scope
+        : "/";
+
     var targetUrl = url || scopeRoot;
 
     var options = {
@@ -64,34 +82,42 @@ if (messaging && typeof messaging.setBackgroundMessageHandler === "function") {
       data: { url: targetUrl }
     };
 
-    return self.registration.showNotification(title, options);
+    self.registration.showNotification(title, options);
   });
 }
 
-// klik
+// Klik na notifikáciu – otvorí / zaostrí okno appky
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
 
   var targetUrl = "/";
   try {
-    if (event.notification && event.notification.data && event.notification.data.url) {
+    if (
+      event.notification &&
+      event.notification.data &&
+      event.notification.data.url
+    ) {
       targetUrl = event.notification.data.url;
     }
   } catch (_) {}
 
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
-      for (var i = 0; i < clientList.length; i++) {
-        var client = clientList[i];
-        if (client && "focus" in client) {
-          try {
-            if (targetUrl && client.url && client.url.indexOf(targetUrl) !== -1) {
-              return client.focus();
-            }
-          } catch (_) {}
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then(function (clientList) {
+        for (var i = 0; i < clientList.length; i++) {
+          var client = clientList[i];
+          if (client && "focus" in client) {
+            try {
+              if (targetUrl && client.url && client.url.indexOf(targetUrl) !== -1) {
+                return client.focus();
+              }
+            } catch (_) {}
+          }
         }
-      }
-      if (clients.openWindow) return clients.openWindow(targetUrl);
-    })
+        if (clients.openWindow) {
+          return clients.openWindow(targetUrl);
+        }
+      })
   );
 });
