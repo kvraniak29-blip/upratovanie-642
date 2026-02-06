@@ -47,7 +47,7 @@ async function posliMulticast(rodina, payload) {
 }
 
 // (1) Scheduler – každých 5 minút: spracuje notifications_queue
-exports.sendScheduledNotifications = onSchedule("every 5 minutes", async () => {
+exports.sendScheduledNotifications = onSchedule("every 2 minutes", async () => {
   const teraz = new Date();
   const snap = await db.collection("notifications_queue").orderBy("plannedAt", "asc").limit(100).get();
 
@@ -156,3 +156,4 @@ exports.sendChatTestNotification = onRequest(async (req, res) => {
     return res.status(500).json({ ok: false, chyba: String(e && e.message ? e.message : e) });
   }
 });
+
