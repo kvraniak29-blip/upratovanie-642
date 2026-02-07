@@ -121,3 +121,13 @@ self.addEventListener("notificationclick", function (event) {
       })
   );
 });
+
+//
+// BD642 PWA installability: minimálny fetch handler (Chrome vyžaduje SW s fetch)
+// Nechávame iba „passthrough“, aby sa nerozbilo Firebase Messaging.
+//
+self.addEventListener('fetch', (event) => {
+  // passthrough
+  event.respondWith(fetch(event.request));
+});
+

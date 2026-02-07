@@ -1992,6 +1992,130 @@
       });
     })();
   </script>
+<script>
+/* BD642_PWA_INSTALL_FIX */
+(function(){
+  'use strict';
+
+  // --- Lokálne nastavenie notifikácií (select + Uložiť) ---
+  const LS_KEY_LOCAL_NOTIF = 'BD642_local_notifikacie'; // hodnoty: 'Zapnuté'/'Vypnuté' (alebo čo máš v option)
+
+  function applyLocalNotifFromStorage(){
+    const sel = document.getElementById('bd642LocalNotifSelect');
+    if(!sel) return;
+    const v = localStorage.getItem(LS_KEY_LOCAL_NOTIF);
+    if(v){
+      // nastav iba ak existuje medzi options
+      const opt = Array.from(sel.options || []).some(o => (o.value===v || o.text===v));
+      if(opt){
+        // preferujeme value match, fallback na text
+        sel.value = v;
+        if(sel.value !== v){
+          const match = Array.from(sel.options).find(o => o.text === v);
+          if(match) sel.value = match.value;
+        }
+      }
+    }
+  }
+
+  function saveLocalNotif(){
+    const sel = document.getElementById('bd642LocalNotifSelect');
+    if(!sel) return;
+    // ulož value; ak je prázdne, ulož text
+    const v = (sel.value && sel.value.trim()) ? sel.value.trim() : (sel.options[sel.selectedIndex]?.text || '').trim();
+    if(v) localStorage.setItem(LS_KEY_LOCAL_NOTIF, v);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    applyLocalNotifFromStorage();
+
+    const btnSave = document.getElementById('bd642LocalNotifSave');
+    if(btnSave){
+      btnSave.addEventListener('click', () => {
+        saveLocalNotif();
+        // vizuálny feedback (jemný)
+        btnSave.classList.add('bd642-saved-pulse');
+        setTimeout(()=>btnSave.classList.remove('bd642-saved-pulse'), 600);
+      });
+    }
+  });
+
+  // --- PWA inštalácia (Android/Windows: beforeinstallprompt) + iOS návod ---
+  let deferredPrompt = null;
+
+  function isIOS(){
+    return /iphone|ipad|ipod/i.test(navigator.userAgent);
+  }
+  function isStandalone(){
+    // iOS: navigator.standalone, ostatné: display-mode
+    return (window.navigator.standalone === true) || window.matchMedia('(display-mode: standalone)').matches;
+  }
+
+  function setInstallInfo(msg){
+    const el = document.getElementById('bd642PwaInstallInfo');
+    if(el) el.textContent = msg || '';
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Chrome/Edge/Android/Windows
+    e.preventDefault();
+    deferredPrompt = e;
+    const btn = document.getElementById('bd642PwaInstallBtn');
+    if(btn){
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    }
+    setInstallInfo('Android/Windows: pripravené na inštaláciu.');
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('bd642PwaInstallBtn');
+    if(!btn) return;
+
+    // default: neaktívne, kým nepríde beforeinstallprompt (na Android/Windows)
+    btn.disabled = true;
+    btn.style.opacity = '0.65';
+
+    if(isStandalone()){
+      btn.disabled = true;
+      setInstallInfo('Aplikácia je už nainštalovaná.');
+      return;
+    }
+
+    if(isIOS()){
+      // iOS nemá beforeinstallprompt
+      btn.disabled = true;
+      setInstallInfo('iOS: otvor v Safari → Zdieľať → Pridať na plochu.');
+      return;
+    }
+
+    setInstallInfo('Ak sa tlačidlo neaktivuje: prehliadač ešte nevyhodnotil web ako inštalovateľný. Skús refresh a otvor Nastavenia ešte raz.');
+
+    btn.addEventListener('click', async () => {
+      if(!deferredPrompt){
+        setInstallInfo('Inštalácia nie je dostupná (prehliadač nedal ponuku). Skús refresh / pár sekúnd počkaj / otvor stránku znova.');
+        return;
+      }
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+
+      if(choice && choice.outcome === 'accepted'){
+        setInstallInfo('Inštalácia spustená.');
+      } else {
+        setInstallInfo('Inštalácia zrušená.');
+      }
+      btn.disabled = true;
+      btn.style.opacity = '0.65';
+    });
+  });
+
+})();
+</script>
+<style>
+/* drobný feedback pre Uložiť */
+.bd642-saved-pulse{ filter: brightness(1.15); transform: translateY(-1px); transition: all .2s ease; }
+</style>
 </body>
 </html>
 <script>
@@ -2003,4 +2127,5 @@ setInterval(() => {
   }
 }, 300000); // 5 minút
 </script>
+
 
