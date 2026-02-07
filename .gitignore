@@ -1,0 +1,10 @@
+
+# BD642 – auto ignore
+Logy/
+*.log
+.firebase/
+.firebase/*
+**/.firebase/
+.firebase/hosting.*.cache
+.DS_Store
+Zálohy/
