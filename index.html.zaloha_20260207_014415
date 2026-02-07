@@ -596,23 +596,6 @@
           </div>
         </div>
         <!-- /PUSH -->
-        <!-- PWA INŠTALÁCIA -->
-        <div class="card" id="pwaInstallCard" style="margin-top:12px;padding:12px;background:rgba(15,26,46,.55);border-color:var(--fieldLine)">
-          <div class="row">
-            <div style="min-width:0">
-              <div style="font-weight:900">Aplikácia (PWA)</div>
-              <div class="small" id="pwaInstallHint" style="margin-top:6px">—</div>
-            </div>
-            <span class="spacer"></span>
-            <button class="btn pri" id="btnInstallApp" type="button" disabled>
-              <i class="fa-solid fa-download"></i> <span id="btnInstallText">Nainštalovať</span>
-            </button>
-          </div>
-          <div class="small" style="margin-top:10px">
-            <strong>iOS (iPhone/iPad):</strong> v Safari otvor stránku → <em>Zdieľať</em> → <em>Pridať na plochu</em>.
-          </div>
-        </div>
-        <!-- /PWA INŠTALÁCIA -->
 
         <div class="row" style="margin-top:10px">
           <span class="tag ok" id="prefsSaved"><i class="fa-regular fa-circle"></i> Neuložené</span>
@@ -1593,106 +1576,6 @@
       const max = new Date(d0(b.end)); max.setHours(23,59,59,999);
       if(dt < min || dt > max){
         if(!confirm("Dátum je mimo vybraného týždňa. Chceš pokračovať?")) return;
-
-    /* PWA inštalácia (Android/Windows cez Chrome/Edge) + iOS návod */
-    (function(){
-      const btn = $("#btnInstallApp");
-      const hint = $("#pwaInstallHint");
-      const txt = $("#btnInstallText");
-
-      function isStandalone(){
-        return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
-      }
-      function isIOS(){
-        return /iphone|ipad|ipod/i.test(navigator.userAgent);
-      }
-
-      let deferredPrompt = null;
-
-      function setUi(state){
-        // state: "ready", "not-available", "installed", "ios"
-        if(!btn || !hint) return;
-
-        if(isStandalone()){
-          btn.disabled = true;
-          btn.style.opacity = "0.6";
-          if(txt) txt.textContent = "Nainštalované";
-          hint.textContent = "Aplikácia je už nainštalovaná (PWA).";
-          return;
-        }
-
-        if(isIOS()){
-          btn.disabled = true; // iOS nemá programový prompt
-          btn.style.opacity = "0.75";
-          if(txt) txt.textContent = "Návod pre iOS";
-          hint.textContent = "iOS: otvor v Safari → Zdieľať → Pridať na plochu.";
-          return;
-        }
-
-        if(state === "ready"){
-          btn.disabled = false;
-          btn.style.opacity = "1";
-          if(txt) txt.textContent = "Nainštalovať";
-          hint.textContent = "Dostupná inštalácia (Chrome/Edge). Klikni na Nainštalovať.";
-          return;
-        }
-
-        btn.disabled = true;
-        btn.style.opacity = "0.6";
-        if(txt) txt.textContent = "Nainštalovať";
-        hint.textContent = "Inštalácia nie je dostupná. Skontroluj, či je stránka na HTTPS, má manifest a service worker.";
-      }
-
-      // Inicializácia stavu
-      setUi("not-available");
-
-      // Zachyť inštalačný prompt (Chrome/Edge Android/Windows)
-      window.addEventListener("beforeinstallprompt", (e)=>{
-        e.preventDefault();
-        deferredPrompt = e;
-        setUi("ready");
-      });
-
-      // Reakcia po inštalácii
-      window.addEventListener("appinstalled", ()=>{
-        deferredPrompt = null;
-        setUi("installed");
-      });
-
-      if(btn){
-        btn.addEventListener("click", async ()=>{
-          if(isIOS()){
-            alert("iOS: otvor v Safari → Zdieľať → Pridať na plochu.");
-            return;
-          }
-          if(!deferredPrompt){
-            alert("Inštalácia nie je momentálne dostupná. Skús obnoviť stránku a uisti sa, že používaš Chrome/Edge.");
-            return;
-          }
-          try{
-            deferredPrompt.prompt();
-            const choice = await deferredPrompt.userChoice;
-            // choice.outcome: "accepted" | "dismissed"
-            deferredPrompt = null;
-            if(choice && choice.outcome === "accepted"){
-              setUi("installed");
-            } else {
-              setUi("not-available");
-            }
-          }catch(_){
-            setUi("not-available");
-          }
-        });
-      }
-
-      // keď sa zmení režim zobrazenia, zaktualizuj UI
-      try{
-        const mm = window.matchMedia("(display-mode: standalone)");
-        if(mm && mm.addEventListener){
-          mm.addEventListener("change", ()=>setUi("not-available"));
-        }
-      }catch(_){}
-    })();
       }
 
       if(prefs.notifyEnabled==="on"){
@@ -2003,4 +1886,3 @@ setInterval(() => {
   }
 }, 300000); // 5 minút
 </script>
-
