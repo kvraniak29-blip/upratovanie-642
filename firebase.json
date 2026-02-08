@@ -1,1 +1,39 @@
-
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "**/.*",
+      "**/node_modules/**",
+      "Logy/**",
+      "Zálohy/**"
+    ],
+    "rewrites": [
+      {
+        "destination": "/index.html",
+        "source": "**"
+      }
+    ],
+    "headers": [
+      {
+        "headers": [
+          {
+            "value": "no-cache, no-store, must-revalidate",
+            "key": "Cache-Control"
+          }
+        ],
+        "source": "/manifest.webmanifest"
+      },
+      {
+        "headers": [
+          {
+            "value": "no-cache, no-store, must-revalidate",
+            "key": "Cache-Control"
+          }
+        ],
+        "source": "/firebase-messaging-sw.js"
+      }
+    ]
+  }
+}
