@@ -5,7 +5,7 @@
   "lang": "sk",
   "start_url": "./",
   "scope": "./",
-  "id": "./?bd642=pwa",
+  "id": "/?bd642=pwa",
   "display": "standalone",
   "display_override": [
     "standalone",
