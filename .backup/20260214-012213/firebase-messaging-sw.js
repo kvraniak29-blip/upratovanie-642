@@ -90,17 +90,36 @@ if (messaging) {
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
 
-  var targetUrl = (self.registration && self.registration.scope) ? self.registration.scope : "/";
+  var targetUrl = "/";
   try {
-    if (event.notification && event.notification.data && event.notification.data.url) {
-    targetUrl = event.notification.data.url;
-}
-try {
-    // ak je targetUrl relatívne, ukotvi na scope service workeru
-    var base = (self.registration && self.registration.scope) ? self.registration.scope : "/";
-    targetUrl = new URL(targetUrl, base).href;
-} catch (e) {
-    // fallback bez pádu
+    if (
+      event.notification &&
+      event.notification.data &&
+      event.notification.data.url
+    ) {
+      targetUrl = event.notification.data.url;
+    }
+  } catch (_) {}
+
+  event.waitUntil(
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then(function (clientList) {
+        for (var i = 0; i < clientList.length; i++) {
+          var client = clientList[i];
+          if (client && "focus" in client) {
+            try {
+              if (targetUrl && client.url && client.url.indexOf(targetUrl) !== -1) {
+                return client.focus();
+              }
+            } catch (_) {}
+          }
+        }
+        if (clients.openWindow) {
+          return clients.openWindow(targetUrl);
+        }
+      })
+  );
 });
 
 //
