@@ -1,64 +1,15 @@
-﻿{
+{
   "hosting": {
     "public": ".",
     "ignore": [
       "firebase.json",
-      ".firebaserc",
       "**/.*",
-      "**/node_modules/**",
-      "Logy/**",
-      "Zálohy/**"
+      "**/node_modules/**"
     ],
     "rewrites": [
       {
         "destination": "/index.html",
         "source": "**"
-      }
-    ],
-    "headers": [
-      {
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "no-store, max-age=0"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/manifest+json; charset=utf-8"
-          }
-        ],
-        "source": "/manifest.webmanifest"
-      },
-      {
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "no-store, max-age=0"
-          },
-          {
-            "key": "Service-Worker-Allowed",
-            "value": "/"
-          }
-        ],
-        "source": "/firebase-messaging-sw.js"
-      },
-      {
-        "source": "/icon-192.png",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "public, max-age=300"
-          }
-        ]
-      },
-      {
-        "source": "/icon-512.png",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "public, max-age=300"
-          }
-        ]
       }
     ]
   }
