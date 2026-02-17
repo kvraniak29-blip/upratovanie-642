@@ -580,7 +580,6 @@
               <div style="font-weight:900">Push notifikácie (Firebase)</div>
             </div>
             <span class="spacer"></span>
-            <!-- žiadny inline onclick, všetko rieši JS nižšie -->
             <button class="btn pri" id="btnPushEnable" type="button">
               <i class="fa-solid fa-bell"></i> <span id="btnPushText">Zapnúť push</span>
             </button>
@@ -596,6 +595,7 @@
           </div>
         </div>
         <!-- /PUSH -->
+
         <!-- PWA INŠTALÁCIA -->
         <div class="card" id="pwaInstallCard" style="margin-top:12px;padding:12px;background:rgba(15,26,46,.55);border-color:var(--fieldLine)">
           <div class="row">
@@ -1400,7 +1400,6 @@
     const elState = $("#pushState");
     const elTok = $("#pushTokenShort");
 
-    // trvalý zápis stavu (okrem dočasného "WORKING")
     try {
       if (state === "OK") {
         localStorage.setItem(PUSH_STATE_KEY, "OK");
@@ -1412,7 +1411,6 @@
         localStorage.removeItem(PUSH_STATE_KEY);
         localStorage.removeItem(PUSH_TOKEN_KEY);
       }
-      // "WORKING" je prechodný – nezapisujeme
     } catch(_){}
 
     if(state === "OK"){
@@ -1453,18 +1451,15 @@
     if(state === "WORKING"){
       elState.className = "tag";
       elState.innerHTML = '<i class="fa-solid fa-gear fa-spin"></i> Push: prebieha nastavenie…';
-      // token nemeníme
       return;
     }
 
-    // default / "—"
     elState.className = "tag";
     elState.innerHTML = '<i class="fa-regular fa-bell"></i> Push: —';
     elTok.className = "tag";
     elTok.innerHTML = '<i class="fa-solid fa-key"></i> Token: —';
   }
 
-  /* Tlačidlo "Zapnúť push" – naviazané na rodinu + BD642_ZapnutUpozornenia, výsledok sa uloží natrvalo */
   async function enablePushFromButton(btn){
     try{
       if(role === "demo"){
@@ -1501,7 +1496,6 @@
       console.log("BD642: výsledok BD642_ZapnutUpozornenia:", res);
 
       if(res && res.ok && res.token){
-        // OK + token – stav aj token sa uložia do localStorage v setPushUi
         setPushUi("OK", res.token);
         return;
       }
@@ -1556,7 +1550,6 @@
     $("#loginOverlay").setAttribute("aria-hidden","true");
     rerenderAll();
     scheduleNotification();
-    // DÔLEŽITÉ: push stav NEČISTÍME – token v SW/Firestore ostáva, notifikácie chodia ďalej.
   }
 
   function wire(){
@@ -1593,106 +1586,6 @@
       const max = new Date(d0(b.end)); max.setHours(23,59,59,999);
       if(dt < min || dt > max){
         if(!confirm("Dátum je mimo vybraného týždňa. Chceš pokračovať?")) return;
-
-    /* PWA inštalácia (Android/Windows cez Chrome/Edge) + iOS návod */
-    (function(){
-      const btn = $("#btnInstallApp");
-      const hint = $("#pwaInstallHint");
-      const txt = $("#btnInstallText");
-
-      function isStandalone(){
-        return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
-      }
-      function isIOS(){
-        return /iphone|ipad|ipod/i.test(navigator.userAgent);
-      }
-
-      let deferredPrompt = null;
-
-      function setUi(state){
-        // state: "ready", "not-available", "installed", "ios"
-        if(!btn || !hint) return;
-
-        if(isStandalone()){
-          btn.disabled = true;
-          btn.style.opacity = "0.6";
-          if(txt) txt.textContent = "Nainštalované";
-          hint.textContent = "Aplikácia je už nainštalovaná (PWA).";
-          return;
-        }
-
-        if(isIOS()){
-          btn.disabled = true; // iOS nemá programový prompt
-          btn.style.opacity = "0.75";
-          if(txt) txt.textContent = "Návod pre iOS";
-          hint.textContent = "iOS: otvor v Safari → Zdieľať → Pridať na plochu.";
-          return;
-        }
-
-        if(state === "ready"){
-          btn.disabled = false;
-          btn.style.opacity = "1";
-          if(txt) txt.textContent = "Nainštalovať";
-          hint.textContent = "Dostupná inštalácia (Chrome/Edge). Klikni na Nainštalovať.";
-          return;
-        }
-
-        btn.disabled = true;
-        btn.style.opacity = "0.6";
-        if(txt) txt.textContent = "Nainštalovať";
-        hint.textContent = "Inštalácia nie je dostupná. Skontroluj, či je stránka na HTTPS, má manifest a service worker.";
-      }
-
-      // Inicializácia stavu
-      setUi("not-available");
-
-      // Zachyť inštalačný prompt (Chrome/Edge Android/Windows)
-      window.addEventListener("beforeinstallprompt", (e)=>{
-        e.preventDefault();
-        deferredPrompt = e;
-        setUi("ready");
-      });
-
-      // Reakcia po inštalácii
-      window.addEventListener("appinstalled", ()=>{
-        deferredPrompt = null;
-        setUi("installed");
-      });
-
-      if(btn){
-        btn.addEventListener("click", async ()=>{
-          if(isIOS()){
-            alert("iOS: otvor v Safari → Zdieľať → Pridať na plochu.");
-            return;
-          }
-          if(!deferredPrompt){
-            alert("Inštalácia nie je momentálne dostupná. Skús obnoviť stránku a uisti sa, že používaš Chrome/Edge.");
-            return;
-          }
-          try{
-            deferredPrompt.prompt();
-            const choice = await deferredPrompt.userChoice;
-            // choice.outcome: "accepted" | "dismissed"
-            deferredPrompt = null;
-            if(choice && choice.outcome === "accepted"){
-              setUi("installed");
-            } else {
-              setUi("not-available");
-            }
-          }catch(_){
-            setUi("not-available");
-          }
-        });
-      }
-
-      // keď sa zmení režim zobrazenia, zaktualizuj UI
-      try{
-        const mm = window.matchMedia("(display-mode: standalone)");
-        if(mm && mm.addEventListener){
-          mm.addEventListener("change", ()=>setUi("not-available"));
-        }
-      }catch(_){}
-    })();
       }
 
       if(prefs.notifyEnabled==="on"){
@@ -1877,7 +1770,6 @@
       }, 900);
     });
 
-    /* Naviazanie tlačidla "Zapnúť push" na FCM modul a prihlásenú rodinu */
     const btnPush = $("#btnPushEnable");
     if(btnPush){
       btnPush.addEventListener("click", (e)=>{
@@ -1933,7 +1825,6 @@
 
   $("#notifyEnabled").value = prefs.notifyEnabled;
 
-  // Obnova push stavu z localStorage – token a stav ostávajú AJ po odhlásení
   try {
     const st = localStorage.getItem(PUSH_STATE_KEY);
     const tok = localStorage.getItem(PUSH_TOKEN_KEY);
@@ -1967,379 +1858,124 @@
 })();
 </script>
 
-  <!-- Firebase push modul + Firestore + service worker registrácia (v8) -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-  <!-- DÔLEŽITÉ: relatívna cesta (GitHub Pages subcesta) -->
-  <script src="./bd642_firebase_messaging.js"></script>
-
-  <script>
-    // Registrácia service workeru pre Firebase messaging (GitHub Pages friendly)
-    (function () {
-      if (!("serviceWorker" in navigator)) return;
-
-      window.addEventListener("load", function () {
-        navigator.serviceWorker
-          .register("./firebase-messaging-sw.js")
-          .then(function (reg) {
-            console.log("BD642 FCM: SW zaregistrovaný:", reg && reg.scope ? reg.scope : reg);
-          })
-          .catch(function (err) {
-            console.error("BD642 FCM: chyba pri registrácii SW:", err);
-          });
-      });
-    })();
-  </script>
+<!-- PWA inštalácia – JEDINÁ verzia (mimo iných handlerov) -->
 <script>
-/* BD642_PWA_INSTALL_FIX */
 (function(){
-  'use strict';
+  const btn = document.getElementById("btnInstallApp");
+  const hint = document.getElementById("pwaInstallHint");
+  const txt = document.getElementById("btnInstallText");
 
-  // --- Lokálne nastavenie notifikácií (select + Uložiť) ---
-  const LS_KEY_LOCAL_NOTIF = 'BD642_local_notifikacie'; // hodnoty: 'Zapnuté'/'Vypnuté' (alebo čo máš v option)
+  if(!btn || !hint) return;
 
-  function applyLocalNotifFromStorage(){
-    const sel = document.getElementById('bd642LocalNotifSelect');
-    if(!sel) return;
-    const v = localStorage.getItem(LS_KEY_LOCAL_NOTIF);
-    if(v){
-      // nastav iba ak existuje medzi options
-      const opt = Array.from(sel.options || []).some(o => (o.value===v || o.text===v));
-      if(opt){
-        // preferujeme value match, fallback na text
-        sel.value = v;
-        if(sel.value !== v){
-          const match = Array.from(sel.options).find(o => o.text === v);
-          if(match) sel.value = match.value;
-        }
-      }
-    }
+  function isStandalone(){
+    return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
   }
-
-  function saveLocalNotif(){
-    const sel = document.getElementById('bd642LocalNotifSelect');
-    if(!sel) return;
-    // ulož value; ak je prázdne, ulož text
-    const v = (sel.value && sel.value.trim()) ? sel.value.trim() : (sel.options[sel.selectedIndex]?.text || '').trim();
-    if(v) localStorage.setItem(LS_KEY_LOCAL_NOTIF, v);
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    applyLocalNotifFromStorage();
-
-    const btnSave = document.getElementById('bd642LocalNotifSave');
-    if(btnSave){
-      btnSave.addEventListener('click', () => {
-        saveLocalNotif();
-        // vizuálny feedback (jemný)
-        btnSave.classList.add('bd642-saved-pulse');
-        setTimeout(()=>btnSave.classList.remove('bd642-saved-pulse'), 600);
-      });
-    }
-  });
-
-  // --- PWA inštalácia (Android/Windows: beforeinstallprompt) + iOS návod ---
-  let deferredPrompt = null;
-
   function isIOS(){
     return /iphone|ipad|ipod/i.test(navigator.userAgent);
   }
-  function isStandalone(){
-    // iOS: navigator.standalone, ostatné: display-mode
-    return (window.navigator.standalone === true) || window.matchMedia('(display-mode: standalone)').matches;
-  }
 
-  function setInstallInfo(msg){
-    const el = document.getElementById('bd642PwaInstallInfo');
-    if(el) el.textContent = msg || '';
-  }
+  let deferredPrompt = null;
 
-  window.addEventListener('beforeinstallprompt', (e) => {
-    // Chrome/Edge/Android/Windows
-    e.preventDefault();
-    deferredPrompt = e;
-    const btn = document.getElementById('bd642PwaInstallBtn');
-    if(btn){
-      btn.disabled = false;
-      btn.style.opacity = '1';
-    }
-    setInstallInfo('Android/Windows: pripravené na inštaláciu.');
-  });
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('bd642PwaInstallBtn');
-    if(!btn) return;
-
-    // default: neaktívne, kým nepríde beforeinstallprompt (na Android/Windows)
-    btn.disabled = true;
-    btn.style.opacity = '0.65';
-
+  function setUi(state){
     if(isStandalone()){
       btn.disabled = true;
-      setInstallInfo('Aplikácia je už nainštalovaná.');
+      btn.style.opacity = "0.6";
+      if(txt) txt.textContent = "Nainštalované";
+      hint.textContent = "Aplikácia je už nainštalovaná (PWA).";
       return;
     }
 
     if(isIOS()){
-      // iOS nemá beforeinstallprompt
       btn.disabled = true;
-      setInstallInfo('iOS: otvor v Safari → Zdieľať → Pridať na plochu.');
+      btn.style.opacity = "0.75";
+      if(txt) txt.textContent = "Návod pre iOS";
+      hint.textContent = "iOS: otvor v Safari → Zdieľať → Pridať na plochu.";
       return;
     }
 
-    setInstallInfo('Ak sa tlačidlo neaktivuje: prehliadač ešte nevyhodnotil web ako inštalovateľný. Skús refresh a otvor Nastavenia ešte raz.');
+    if(state === "ready"){
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      if(txt) txt.textContent = "Nainštalovať";
+      hint.textContent = "Dostupná inštalácia (Chrome/Edge). Klikni na Nainštalovať.";
+      return;
+    }
 
-    btn.addEventListener('click', async () => {
-      if(!deferredPrompt){
-        setInstallInfo('Inštalácia nie je dostupná (prehliadač nedal ponuku). Skús refresh / pár sekúnd počkaj / otvor stránku znova.');
-        return;
-      }
+    btn.disabled = true;
+    btn.style.opacity = "0.6";
+    if(txt) txt.textContent = "Nainštalovať";
+    hint.textContent = "Inštalácia nie je dostupná. Skontroluj, či je stránka na HTTPS, má manifest a service worker.";
+  }
+
+  setUi("not-available");
+
+  window.addEventListener("beforeinstallprompt", (e)=>{
+    e.preventDefault();
+    deferredPrompt = e;
+    setUi("ready");
+  });
+
+  window.addEventListener("appinstalled", ()=>{
+    deferredPrompt = null;
+    setUi("installed");
+  });
+
+  btn.addEventListener("click", async ()=>{
+    if(isIOS()){
+      alert("iOS: otvor v Safari → Zdieľať → Pridať na plochu.");
+      return;
+    }
+    if(!deferredPrompt){
+      alert("Inštalácia nie je momentálne dostupná. Skús obnoviť stránku a uisti sa, že používaš Chrome/Edge.");
+      return;
+    }
+    try{
       deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;
       deferredPrompt = null;
-
-      if(choice && choice.outcome === 'accepted'){
-        setInstallInfo('Inštalácia spustená.');
+      if(choice && choice.outcome === "accepted"){
+        setUi("installed");
       } else {
-        setInstallInfo('Inštalácia zrušená.');
+        setUi("not-available");
       }
-      btn.disabled = true;
-      btn.style.opacity = '0.65';
-    });
+    }catch(_){
+      setUi("not-available");
+    }
   });
 
+  try{
+    const mm = window.matchMedia("(display-mode: standalone)");
+    if(mm && mm.addEventListener){
+      mm.addEventListener("change", ()=>setUi("not-available"));
+    }
+  }catch(_){}
 })();
 </script>
-<style>
-/* drobný feedback pre Uložiť */
-.bd642-saved-pulse{ filter: brightness(1.15); transform: translateY(-1px); transition: all .2s ease; }
-</style>
+
+<!-- Firebase push modul + Firestore + service worker registrácia (v8) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<!-- DÔLEŽITÉ: relatívna cesta (GitHub Pages subcesta) -->
+<script src="./bd642_firebase_messaging.js"></script>
+
 <script>
-(function(){
-  if(!('serviceWorker' in navigator)) return;
-  // registrácia SW na root scope – nutné pre installability
-  navigator.serviceWorker.register("./firebase-messaging-sw.js", { scope: "./" });
+(function () {
+  if (!("serviceWorker" in navigator)) return;
+
+  window.addEventListener("load", function () {
+    navigator.serviceWorker
+      .register("./firebase-messaging-sw.js", { scope: "./" })
+      .then(function (reg) {
+        console.log("BD642 FCM: SW zaregistrovaný:", reg && reg.scope ? reg.scope : reg);
+      })
+      .catch(function (err) {
+        console.error("BD642 FCM: chyba pri registrácii SW:", err);
+      });
+  });
 })();
 </script>
-<script>
-/* BD642_PWA_INSTALL_UI */
-(function(){
-  "use strict";
 
-  function isIOS(){
-    return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
-  }
-  function isStandalone(){
-    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (window.navigator && window.navigator.standalone);
-  }
-
-  // Nájde tlačidlo "Nainštalovať" v sekcii "Aplikácia (PWA)" podľa textu
-  function findInstallButton(){
-    var btns = Array.prototype.slice.call(document.querySelectorAll('button, a'));
-    for(var i=0;i<btns.length;i++){
-      var t = (btns[i].innerText || btns[i].textContent || "").trim();
-      if(/nainštalovať/i.test(t)) return btns[i];
-    }
-    return null;
-  }
-
-  // Nájde sekciu lokálnych notifikácií podľa textu "Notifikácie (lokálne v prehliadači)" a tlačidlo "Uložiť"
-  function findLocalNotifUI(){
-    var candidates = Array.prototype.slice.call(document.querySelectorAll('*'));
-    var headerEl = null;
-    for(var i=0;i<candidates.length;i++){
-      var txt = (candidates[i].innerText || candidates[i].textContent || "");
-      if(txt && txt.indexOf("Notifikácie (lokálne v prehliadači)") !== -1){
-        headerEl = candidates[i];
-        break;
-      }
-    }
-    if(!headerEl) return null;
-
-    // hľadaj najbližší kontajner, kde je select + tlačidlo Uložiť
-    var container = headerEl;
-    for(var up=0; up<6 && container; up++){
-      var sel = container.querySelector('select');
-      var btns = Array.prototype.slice.call(container.querySelectorAll('button, a'));
-      var saveBtn = null;
-      for(var b=0;b<btns.length;b++){
-        var bt = (btns[b].innerText || btns[b].textContent || "").trim();
-        if(/^uložiť$/i.test(bt)) { saveBtn = btns[b]; break; }
-      }
-      if(sel && saveBtn) return { select: sel, saveBtn: saveBtn, container: container };
-      container = container.parentElement;
-    }
-    return null;
-  }
-
-  // --- PWA install flow (Android/Windows) ---
-  var deferredPrompt = null;
-  var installBtn = null;
-
-  function setInstallBtnState(state){
-    if(!installBtn) return;
-    if(state === "installed"){
-      installBtn.disabled = true;
-      installBtn.title = "Aplikácia je už nainštalovaná.";
-      installBtn.style.opacity = "0.65";
-      return;
-    }
-    if(state === "ready"){
-      installBtn.disabled = false;
-      installBtn.title = "";
-      installBtn.style.opacity = "";
-      return;
-    }
-    if(state === "ios"){
-      installBtn.disabled = true;
-      installBtn.title = "iOS: otvor v Safari → Zdieľať → Pridať na plochu.";
-      installBtn.style.opacity = "0.65";
-      return;
-    }
-    // default: not available yet
-    installBtn.disabled = true;
-    installBtn.title = "Inštalácia sa aktivuje, keď prehliadač vyhodnotí web ako inštalovateľný (HTTPS + manifest + service worker).";
-    installBtn.style.opacity = "0.65";
-  }
-
-  window.addEventListener('beforeinstallprompt', function(e){
-    // Chrome/Edge: zachyť prompt
-    e.preventDefault();
-    deferredPrompt = e;
-    if(!installBtn) installBtn = findInstallButton();
-    setInstallBtnState("ready");
-  });
-
-  window.addEventListener('appinstalled', function(){
-    setInstallBtnState("installed");
-    deferredPrompt = null;
-  });
-
-  function wireInstall(){
-    installBtn = findInstallButton();
-    if(!installBtn) return;
-
-    if(isStandalone()){
-      setInstallBtnState("installed");
-      return;
-    }
-    if(isIOS()){
-      setInstallBtnState("ios");
-      return;
-    }
-
-    // kým nepríde beforeinstallprompt, drž disable
-    setInstallBtnState("waiting");
-
-    installBtn.addEventListener('click', async function(){
-      try{
-        if(!deferredPrompt){
-          alert("Inštalácia zatiaľ nie je dostupná. Sprav tvrdý refresh (Ctrl+F5) a skontroluj, či bežíš na HTTPS.");
-          return;
-        }
-        deferredPrompt.prompt();
-        var choice = await deferredPrompt.userChoice;
-        deferredPrompt = null;
-        // ak odmietol, necháme disabled do ďalšieho eventu
-        if(choice && choice.outcome === "accepted"){
-          setInstallBtnState("installed");
-        } else {
-          setInstallBtnState("waiting");
-        }
-      } catch(err){
-        console.error("BD642 PWA install chyba:", err);
-        alert("Chyba pri inštalácii: " + (err && err.message ? err.message : err));
-      }
-    });
-  }
-
-  // --- Persistencia lokálnych notifikácií (Nastavenia) ---
-  var LS_KEY = "bd642_local_notif_mode";
-
-  function wireLocalNotifSave(){
-    var ui = findLocalNotifUI();
-    if(!ui) return;
-
-    // load
-    var saved = localStorage.getItem(LS_KEY);
-    if(saved !== null && saved !== undefined && saved !== ""){
-      // pokus nastaviť podľa value; ak nemá value, tak podľa textu (fallback)
-      var hasValueMatch = false;
-      for(var i=0;i<ui.select.options.length;i++){
-        if(ui.select.options[i].value === saved){
-          ui.select.value = saved;
-          hasValueMatch = true;
-          break;
-        }
-      }
-      if(!hasValueMatch){
-        // fallback: hľadaj option podľa textu
-        for(var j=0;j<ui.select.options.length;j++){
-          var ot = (ui.select.options[j].textContent || "").trim();
-          if(ot.toLowerCase() === saved.toLowerCase()){
-            ui.select.selectedIndex = j;
-            break;
-          }
-        }
-      }
-    }
-
-    ui.saveBtn.addEventListener('click', function(){
-      try{
-        var val = ui.select.value || "";
-        if(!val){
-          // fallback na text vybranej položky
-          var opt = ui.select.options[ui.select.selectedIndex];
-          val = opt ? (opt.value || opt.textContent || "") : "";
-        }
-        localStorage.setItem(LS_KEY, val);
-
-        // ak existuje tvoja interná funkcia, zavolaj ju (nevadí, ak nie)
-        if(typeof window.BD642_SetLocalNotifications === "function"){
-          window.BD642_SetLocalNotifications(val);
-        }
-      } catch(err){
-        console.error("BD642 local notif save chyba:", err);
-        alert("Chyba pri ukladaní nastavenia: " + (err && err.message ? err.message : err));
-      }
-    });
-  }
-
-  // init po načítaní
-  function init(){
-    wireInstall();
-    wireLocalNotifSave();
-    // po navigácii v SPA sa UI môže meniť -> skúsiť znovu
-    setTimeout(wireInstall, 500);
-    setTimeout(wireLocalNotifSave, 500);
-  }
-
-  if(document.readyState === "complete" || document.readyState === "interactive"){
-    setTimeout(init, 0);
-  } else {
-    document.addEventListener("DOMContentLoaded", init);
-  }
-})();
-</script>
 </body>
 </html>
-<script>
-/* ===== BD642 AUTO SYNC ===== */
-setInterval(() => {
-  if(navigator.onLine && typeof BD642_Sync === "function"){
-    console.debug("BD642 auto-sync");
-    BD642_Sync();
-  }
-}, 300000); // 5 minút
-</script>
-
-
-
-
-
-
-
-
-
