@@ -8,12 +8,21 @@
     ],
     "rewrites": [
       {
-        "destination": "/index.html",
-        "source": "**"
+        "source": "/firebase-messaging-sw.js",
+        "destination": "/firebase-messaging-sw.js"
+      },
+      {
+        "source": "/manifest.webmanifest",
+        "destination": "/manifest.webmanifest"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
       }
     ],
     "headers": [
       {
+        "source": "/firebase-messaging-sw.js",
         "headers": [
           {
             "key": "Cache-Control",
@@ -31,10 +40,10 @@
             "key": "Service-Worker-Allowed",
             "value": "/"
           }
-        ],
-        "source": "/firebase-messaging-sw.js"
+        ]
       },
       {
+        "source": "/manifest.webmanifest",
         "headers": [
           {
             "key": "Cache-Control",
@@ -52,8 +61,7 @@
             "key": "Content-Type",
             "value": "application/manifest+json; charset=utf-8"
           }
-        ],
-        "source": "/manifest.webmanifest"
+        ]
       }
     ]
   }

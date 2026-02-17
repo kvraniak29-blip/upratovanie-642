@@ -1,1 +1,0 @@
-[2026-02-07 00:44:58] START: BD642 oprava trvalých nastavení + sync + UI

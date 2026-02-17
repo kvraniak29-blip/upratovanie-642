@@ -1,41 +1,42 @@
 {
-  "name": "Upratovací plánovač BD 642",
-  "short_name": "BD642",
-  "description": "Harmonogram upratovania BD 642 + lokálne a push upozornenia.",
-  "lang": "sk",
-  "id": "bd642",
+  "display": "standalone",
   "start_url": "./",
   "scope": "./",
-  "display": "standalone",
-  "display_override": ["standalone", "minimal-ui", "browser"],
   "background_color": "#0b1220",
   "theme_color": "#0b1220",
-  "orientation": "portrait",
-  "categories": ["productivity", "utilities"],
+  "description": "Harmonogram upratovania BD 642 + lokálne a push upozornenia.",
+  "name": "Upratovací plánovač BD 642",
+  "display_override": [
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
   "icons": [
     {
-      "purpose": "any",
       "sizes": "192x192",
+      "src": "./icon-192.png",
       "type": "image/png",
-      "src": "./icon-192.png"
+      "purpose": "any"
     },
     {
-      "purpose": "maskable",
       "sizes": "192x192",
+      "src": "./icon-192.png",
       "type": "image/png",
-      "src": "./icon-192.png"
+      "purpose": "maskable"
     },
     {
-      "purpose": "any",
       "sizes": "512x512",
+      "src": "./icon-512.png",
       "type": "image/png",
-      "src": "./icon-512.png"
+      "purpose": "any"
     },
     {
-      "purpose": "maskable",
       "sizes": "512x512",
+      "src": "./icon-512.png",
       "type": "image/png",
-      "src": "./icon-512.png"
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "lang": "sk",
+  "short_name": "BD642"
 }
