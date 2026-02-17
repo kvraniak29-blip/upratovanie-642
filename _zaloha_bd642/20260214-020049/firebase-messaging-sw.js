@@ -1,9 +1,11 @@
 // firebase-messaging-sw.js
-// BD642 – Service Worker pre FCM + PWA installability
+// Service worker pre FCM – BD 642
+// Musí byť v tom istom root/scope, kde beží app (ideálne vedľa index.html)
 
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js");
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js");
 
+// Konfigurácia pre projekt bd-642-26-upratovanie-d2851
 var firebaseConfig = {
   apiKey: "AIzaSyDi9bmbWut2ph5emweyfOoa6FCF8xNUO8I",
   authDomain: "bd-642-26-upratovanie-d2851.firebaseapp.com",
@@ -13,13 +15,25 @@ var firebaseConfig = {
   appId: "1:530262860262:web:ceef384f16e1a6f7e6f627"
 };
 
+// Bezpečná inicializácia Firebase vo worker-i
 try {
-  if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
-} catch (e) { /* nesmie zabiť SW */ }
+  if (!firebase.apps || !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+} catch (e) {
+  // nesmie rozbiť SW
+}
 
 var messaging = null;
-try { messaging = firebase.messaging(); } catch (e2) { messaging = null; }
+try {
+  if (firebase.messaging) {
+    messaging = firebase.messaging();
+  }
+} catch (e2) {
+  messaging = null;
+}
 
+// Helper na bezpečné čítanie z payloadu
 function safeGet(obj, path, defVal) {
   try {
     var parts = path.split(".");
@@ -29,25 +43,14 @@ function safeGet(obj, path, defVal) {
       cur = cur[parts[i]];
     }
     return (cur === undefined || cur === null) ? defVal : cur;
-  } catch (_) { return defVal; }
+  } catch (_) {
+    return defVal;
+  }
 }
 
-// --- rýchle prebratie novej verzie SW ---
-self.addEventListener("install", function(event){
-  try { self.skipWaiting(); } catch(e) {}
-});
-self.addEventListener("activate", function(event){
-  try { event.waitUntil(self.clients.claim()); } catch(e) {}
-});
-
-// --- PWA installability: fetch handler (necacheujeme, len existuje) ---
-self.addEventListener("fetch", function(event){
-  // default sieťové správanie
-});
-
-// --- Background správy (keď app nie je v popredí) ---
+// Background správy (keď app nie je v popredí)
 if (messaging && messaging.onBackgroundMessage) {
-  messaging.onBackgroundMessage(function(payload){
+  messaging.onBackgroundMessage(function (payload) {
     var title = safeGet(payload, "notification.title", "BD 642 – upozornenie");
     var body  = safeGet(payload, "notification.body", "");
 
@@ -68,8 +71,8 @@ if (messaging && messaging.onBackgroundMessage) {
   });
 }
 
-// --- Klik na notifikáciu: otvor/zaostri app ---
-self.addEventListener("notificationclick", function(event){
+// Klik na notifikáciu – otvorí / zaostrí okno appky
+self.addEventListener("notificationclick", function (event) {
   event.notification.close();
 
   var scopeRoot = (self.registration && self.registration.scope) ? self.registration.scope : "./";
@@ -79,21 +82,32 @@ self.addEventListener("notificationclick", function(event){
     if (event.notification && event.notification.data && event.notification.data.url) {
       targetUrl = event.notification.data.url;
     }
-  } catch(_) {}
+  } catch (_) {}
 
-  try { targetUrl = new URL(targetUrl, scopeRoot).href; } catch(_) { targetUrl = scopeRoot; }
+  try {
+    targetUrl = new URL(targetUrl, scopeRoot).href;
+  } catch (_) {
+    // fallback nech nespadne
+    targetUrl = scopeRoot;
+  }
 
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then(function(clientList){
-      for (var i = 0; i < clientList.length; i++) {
-        var client = clientList[i];
-        try {
-          if (client && client.url && targetUrl && client.url.indexOf(targetUrl) !== -1 && "focus" in client) {
-            return client.focus();
-          }
-        } catch(_) {}
-      }
-      if (clients.openWindow) return clients.openWindow(targetUrl);
-    })
+    clients.matchAll({ type: "window", includeUncontrolled: true })
+      .then(function (clientList) {
+        for (var i = 0; i < clientList.length; i++) {
+          var client = clientList[i];
+          try {
+            if (client && "focus" in client) {
+              // ak je už otvorená appka, zameraj ju
+              if (client.url && targetUrl && client.url.indexOf(targetUrl) !== -1) {
+                return client.focus();
+              }
+            }
+          } catch (_) {}
+        }
+        if (clients.openWindow) {
+          return clients.openWindow(targetUrl);
+        }
+      })
   );
 });

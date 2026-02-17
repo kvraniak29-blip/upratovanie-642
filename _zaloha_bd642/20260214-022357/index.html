@@ -2120,7 +2120,8 @@
 (function(){
   if(!('serviceWorker' in navigator)) return;
   // registrácia SW na root scope – nutné pre installability
-  navigator.serviceWorker.register("./firebase-messaging-sw.js", { scope: "./" });
+  navigator.serviceWorker.register("./firebase-messaging-sw.js", { scope: "./" })
+    .catch(function(e){ console.warn('BD642 SW register fail:', e); });
 })();
 </script>
 <script>
@@ -2334,8 +2335,6 @@ setInterval(() => {
   }
 }, 300000); // 5 minút
 </script>
-
-
 
 
 
