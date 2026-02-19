@@ -1,159 +1,141 @@
-"use strict";
-
+const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const { onRequest } = require("firebase-functions/v2/https");
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
-const { onSchedule } = require("firebase-functions/v2/scheduler");
 
 admin.initializeApp();
-const db = admin.firestore();
 
-const DEFAULT_APP_URL = "https://bd-642-26-upratovanie-d2851.web.app/";
+const REGION = "europe-west1";
+const TZ = "Europe/Bratislava";
+const SECRET = "BD642_CHANGE_ME_123";
 
-function nowTs() {
-  return admin.firestore.Timestamp.fromDate(new Date());
-}
+/**
+ * Firestore:
+ *   scheduled_push/{docId}:
+ *     sendAt (Timestamp)  - kedy poslať
+ *     family (string)     - rodina (napr. "Cuchorovci")
+ *     title (string)
+ *     body  (string)
+ *     url   (string)
+ *     sent  (bool)
+ *     createdAt (Timestamp)
+ */
 
-async function nacitajTokenyRodiny(rodina) {
-  if (!rodina) return [];
-  const snap = await db.collection(`rodiny/${rodina}/fcm_tokens`).get();
-  const tokens = [];
-  snap.forEach((d) => {
-    const t = d.get("token") || d.id;
-    if (t && typeof t === "string") tokens.push(t);
+/**
+ * HTTP endpoint: naplánuje push
+ * POST JSON:
+ * {
+ *   "secret": "....",
+ *   "family": "Cuchorovci",
+ *   "sendAtIso": "2026-01-05T18:00:00.000Z",
+ *   "title": "BD 642 – upozornenie",
+ *   "body": "Si na rade tento týždeň.",
+ *   "url": "./?bd642=rem"
+ * }
+ */
+exports.queueReminder = functions
+  .region(REGION)
+  .https.onRequest(async (req, res) => {
+    try {
+      if (req.method !== "POST") return res.status(405).send("POST only");
+
+      const b = req.body || {};
+      if (b.secret !== SECRET) return res.status(403).send("bad secret");
+
+      const family = String(b.family || "").trim();
+      const sendAtIso = String(b.sendAtIso || "").trim();
+      if (!family) return res.status(400).send("missing family");
+      if (!sendAtIso) return res.status(400).send("missing sendAtIso");
+
+      const sendAt = new Date(sendAtIso);
+      if (isNaN(sendAt.getTime())) return res.status(400).send("invalid sendAtIso");
+
+      const doc = {
+        family,
+        sendAt: admin.firestore.Timestamp.fromDate(sendAt),
+        title: String(b.title || "BD 642 – upozornenie"),
+        body:  String(b.body  || ""),
+        url:   String(b.url   || "./"),
+        sent: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+
+      const ref = await admin.firestore().collection("scheduled_push").add(doc);
+      return res.status(200).json({ ok: true, id: ref.id });
+    } catch (e) {
+      console.error("queueReminder error:", e);
+      return res.status(500).json({ ok: false, error: String(e && e.message ? e.message : e) });
+    }
   });
-  return Array.from(new Set(tokens));
-}
 
-async function posliMulticast(rodina, payload) {
-  const tokens = await nacitajTokenyRodiny(rodina);
-  if (!tokens.length) {
-    return { ok: false, dovod: "ZIADNE_TOKENY", successCount: 0, failureCount: 0, failedTokens: [] };
-  }
+/**
+ * Scheduler: každú 1 minútu pošle splatné notifikácie
+ * - nájde unsent, sendAt <= now
+ * - zistí tokeny z: rodiny/{family}/fcm_tokens/*
+ * - pošle každému tokenu webpush s linkom
+ * - označí doc sent=true
+ */
+exports.tick = functions
+  .region(REGION)
+  .pubsub.schedule("every 1 minutes")
+  .timeZone(TZ)
+  .onRun(async () => {
+    const now = admin.firestore.Timestamp.now();
+    const db = admin.firestore();
 
-  const message = {
-    tokens,
-    notification: payload.notification || undefined,
-    data: payload.data || undefined,
-    webpush: payload.webpush || undefined,
-    android: payload.android || undefined
-  };
+    const snap = await db.collection("scheduled_push")
+      .where("sent", "==", false)
+      .where("sendAt", "<=", now)
+      .limit(50)
+      .get();
 
-  const resp = await admin.messaging().sendEachForMulticast(message);
-  const failedTokens = [];
-  resp.responses.forEach((r, i) => { if (!r.success) failedTokens.push(tokens[i]); });
+    if (snap.empty) return null;
 
-  return { ok: resp.successCount > 0, successCount: resp.successCount, failureCount: resp.failureCount, failedTokens };
-}
+    for (const doc of snap.docs) {
+      const data = doc.data() || {};
+      const family = String(data.family || "").trim();
+      if (!family) {
+        await doc.ref.set({ sent: true, sentError: "missing family" }, { merge: true });
+        continue;
+      }
 
-// (1) Scheduler – každých 5 minút: spracuje notifications_queue
-exports.sendScheduledNotifications = onSchedule("every 2 minutes", async () => {
-  const teraz = new Date();
-  const snap = await db.collection("notifications_queue").orderBy("plannedAt", "asc").limit(100).get();
+      // tokeny rodiny
+      const tokSnap = await db.collection("rodiny").doc(family).collection("fcm_tokens").get();
+      const tokens = tokSnap.docs.map(d => String((d.data()||{}).token || d.id)).filter(Boolean);
 
-  const batch = db.batch();
-  let processed = 0;
+      if (!tokens.length) {
+        await doc.ref.set({ sent: true, sentError: "no tokens" }, { merge: true });
+        continue;
+      }
 
-  for (const doc of snap.docs) {
-    const data = doc.data() || {};
-    if (data.sentAt) continue;
+      const title = String(data.title || "BD 642 – upozornenie");
+      const body  = String(data.body  || "");
+      const url   = String(data.url   || "./");
 
-    const plannedAt = data.plannedAt ? data.plannedAt.toDate() : null;
-    if (!plannedAt) continue;
-    if (plannedAt.getTime() > teraz.getTime()) continue;
+      // pošli na všetky tokeny
+      const messageBase = {
+        notification: { title, body },
+        data: { url, ts: new Date().toISOString() },
+        webpush: {
+          fcm_options: { link: url },
+          headers: { Urgency: "high" }
+        }
+      };
 
-    const rodina = (data.rodina || "").toString().trim();
-    const title = (data.title || "Upozornenie").toString();
-    const body  = (data.body  || "").toString();
-    const url   = (data.url   || DEFAULT_APP_URL).toString();
+      const results = [];
+      for (const t of tokens) {
+        try {
+          const r = await admin.messaging().send({ token: t, ...messageBase });
+          results.push({ tokenTail: t.slice(-10), ok: true, name: r });
+        } catch (e) {
+          results.push({ tokenTail: t.slice(-10), ok: false, err: String(e && e.message ? e.message : e) });
+        }
+      }
 
-    const payload = {
-      notification: { title, body },
-      data: {
-        kind: (data.type || "schedule").toString(),
-        rodina,
-        url,
-        ...(data.data && typeof data.data === "object" ? data.data : {})
-      },
-      webpush: { fcmOptions: { link: url } }
-    };
+      await doc.ref.set({
+        sent: true,
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        sendResults: results
+      }, { merge: true });
+    }
 
-    const result = await posliMulticast(rodina, payload);
-    batch.update(doc.ref, { sentAt: nowTs(), sendResult: result, processedAt: nowTs() });
-
-    processed++;
-    if (processed >= 50) break;
-  }
-
-  if (processed > 0) await batch.commit();
-  return null;
-});
-
-// (2) Chat trigger – rodiny/{rodina}/chat/{msgId}
-exports.sendChatNotification = onDocumentCreated("rodiny/{rodina}/chat/{msgId}", async (event) => {
-  const rodina = event.params.rodina;
-  const doc = event.data;
-  if (!doc) return;
-
-  const m = doc.data() || {};
-  const text = (m.text || "").toString();
-  const from = (m.from || "Niekto").toString();
-  const url = `${DEFAULT_APP_URL}#chat`;
-
-  const payload = {
-    notification: { title: `Chat – ${rodina}`, body: text ? `${from}: ${text}` : `${from} poslal správu` },
-    data: { kind: "chat", rodina, url },
-    webpush: { fcmOptions: { link: url } }
-  };
-
-  const result = await posliMulticast(rodina, payload);
-  await doc.ref.set({ push: { sentAt: nowTs(), result } }, { merge: true });
-  return null;
-});
-
-// (3) HTTPS test – priamy push (bez kľúča, len na testovanie)
-exports.sendTestNotification = onRequest(async (req, res) => {
-  try {
-    const rodina = (req.query.rodina || "").toString().trim();
-    if (!rodina) return res.status(400).json({ ok: false, dovod: "CHYBA_RODINA" });
-
-    const title = (req.query.title || "BD642 – test").toString();
-    const body  = (req.query.body  || "Test push z backendu.").toString();
-    const url   = (req.query.url   || DEFAULT_APP_URL).toString();
-
-    const payload = {
-      notification: { title, body },
-      data: { kind: "test", rodina, url },
-      webpush: { fcmOptions: { link: url } }
-    };
-
-    const result = await posliMulticast(rodina, payload);
-    return res.status(200).json({ ok: true, rodina, result });
-  } catch (e) {
-    return res.status(500).json({ ok: false, chyba: String(e && e.message ? e.message : e) });
-  }
-});
-
-// (4) HTTPS test – simuluje chat push (bez zápisu do Firestore)
-exports.sendChatTestNotification = onRequest(async (req, res) => {
-  try {
-    const rodina = (req.query.rodina || "").toString().trim();
-    if (!rodina) return res.status(400).json({ ok: false, dovod: "CHYBA_RODINA" });
-
-    const from = (req.query.from || "Backend").toString();
-    const text = (req.query.text || "Test chat push").toString();
-    const url  = (req.query.url  || `${DEFAULT_APP_URL}#chat`).toString();
-
-    const payload = {
-      notification: { title: `Chat – ${rodina}`, body: `${from}: ${text}` },
-      data: { kind: "chat", rodina, url },
-      webpush: { fcmOptions: { link: url } }
-    };
-
-    const result = await posliMulticast(rodina, payload);
-    return res.status(200).json({ ok: true, rodina, result });
-  } catch (e) {
-    return res.status(500).json({ ok: false, chyba: String(e && e.message ? e.message : e) });
-  }
-});
-
+    return null;
+  });
