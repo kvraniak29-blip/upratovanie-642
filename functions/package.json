@@ -2,7 +2,9 @@
   "name": "bd642-functions",
   "private": true,
   "main": "index.js",
-  "engines": { "node": "18" },
+  "engines": {
+    "node": "20"
+  },
   "dependencies": {
     "firebase-admin": "^12.1.0",
     "firebase-functions": "^5.0.1"
