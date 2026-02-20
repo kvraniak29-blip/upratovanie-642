@@ -2,47 +2,26 @@
 
 // bd642_firebase_messaging.js
 // BD642 – Firebase Messaging (FCM) klient (SDK v8)
-// Fixy: ROOT SW (/firebase-messaging-sw.js + scope '/'), waiting for SW ready,
-// useServiceWorker (v8), robustné debug + ukladanie tokenu + jasné dôvody chýb.
+// Fixy:
+// - absolútna registrácia SW: "/firebase-messaging-sw.js" + scope "/"
+// - storageBucket opravený na appspot.com
+// - robustný výber existujúceho SW (active/waiting/installing)
+// - useServiceWorker (v8) + getToken(serviceWorkerRegistration)
+// - Android Chrome fallback (ak isSupported() klame)
+// - onTokenRefresh (v8) + refresh + delete + diagnostika
 
 (function () {
   "use strict";
 
-  var OUT = {};
-  function nowIso() { try { return new Date().toISOString(); } catch (_) { return ""; } }
-  function log() { try { console.log.apply(console, arguments); } catch (_) {} }
-  function warn() { try { console.warn.apply(console, arguments); } catch (_) {} }
-  function err() { try { console.error.apply(console, arguments); } catch (_) {} }
-
-  function setExportsNotSupported(dovod, detail) {
-    window.BD642_FCM = {
-      podporovane: false,
-      dovod: dovod,
-      detail: detail || null,
-      debug: function () {
-        return {
-          podporovane: false,
-          dovod: dovod,
-          detail: detail || null,
-          notificationPermission: (typeof Notification !== "undefined" ? Notification.permission : "N/A"),
-          serviceWorker: ("serviceWorker" in navigator),
-          pushManager: ("PushManager" in window),
-          userAgent: (navigator.userAgent || "")
-        };
-      },
-      refreshToken: async function () { return { ok: false, dovod: dovod, detail: detail || null }; }
-    };
-    window.BD642_ZapnutUpozornenia = async function () {
-      return { ok: false, dovod: dovod, detail: detail || null };
-    };
-  }
-
+  // 1) Kontrola firebase
   if (typeof firebase === "undefined") {
-    err("BD642 FCM: firebase SDK nie je načítané.");
-    setExportsNotSupported("FIREBASE_CHYBA", "firebase SDK nie je dostupné");
+    console.error("BD642 FCM: firebase SDK nie je načítané.");
+    window.BD642_FCM = { podporovane: false, dovod: "FIREBASE_CHYBA" };
+    window.BD642_ZapnutUpozornenia = async function () { return { ok: false, dovod: "FIREBASE_CHYBA" }; };
     return;
   }
 
+  // 2) Firebase config (OPRAVENÝ storageBucket)
   var firebaseConfig = {
     apiKey: "AIzaSyDi9bmbWut2ph5emweyfOoa6FCF8xNUO8I",
     authDomain: "bd-642-26-upratovanie-d2851.firebaseapp.com",
@@ -53,21 +32,20 @@
     measurementId: "G-2ZDWWZBKRR"
   };
 
+  // 3) VAPID (musí sedieť v Firebase)
   var vapidPublicKey =
     "BHnnUHjr7ujW1Do0bJBbZqL8G9WmJsVmjE859krH6eS3uJ9YUSAex7cnjEJxATx2dXbcPN7Xv9zzppRDE4ZFWZw";
 
+  // 4) init app
   try {
     if (!firebase.apps || !firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
-      log("BD642 FCM: Firebase App inicializovaný.");
-    } else {
-      log("BD642 FCM: Firebase App už existuje.");
     }
   } catch (e) {
-    err("BD642 FCM: firebase.initializeApp chyba:", e);
+    console.error("BD642 FCM: firebase.initializeApp chyba:", e);
   }
 
-  // Firestore (voliteľné)
+  // 5) Firestore (ak je načítaný SDK)
   var db = null;
   var FieldValue = null;
   try {
@@ -75,31 +53,47 @@
       db = firebase.firestore();
       FieldValue = firebase.firestore.FieldValue || null;
     } else {
-      warn("BD642 FCM: firestore SDK nie je načítané (firebase-firestore.js). Token sa uloží len lokálne.");
+      console.warn("BD642 FCM: firestore SDK nie je načítané (firebase-firestore.js).");
     }
   } catch (e2) {
-    err("BD642 FCM: firestore init chyba:", e2);
-    db = null;
+    console.error("BD642 FCM: firestore init chyba:", e2);
   }
 
-  // Messaging podpora
+  // 6) Messaging support
   var messaging = null;
   var messagingPodporovane = false;
+
+  function jeAndroidChromeBezWebView() {
+    try {
+      var ua = (navigator.userAgent || "").toLowerCase();
+      return ua.indexOf("android") !== -1 && ua.indexOf("chrome/") !== -1 && ua.indexOf("wv") === -1;
+    } catch (_) { return false; }
+  }
+
   try {
     if (firebase.messaging && typeof firebase.messaging.isSupported === "function") {
       messagingPodporovane = firebase.messaging.isSupported();
     } else if (firebase.messaging) {
       messagingPodporovane = true;
     }
-    if (messagingPodporovane) messaging = firebase.messaging();
+
+    if (messagingPodporovane) {
+      messaging = firebase.messaging();
+    } else if (firebase.messaging && jeAndroidChromeBezWebView()) {
+      // fallback: Android Chrome vie klamať cez isSupported()
+      messaging = firebase.messaging();
+      messagingPodporovane = true;
+      console.warn("BD642 FCM: isSupported() false, ale Android Chrome – skúšam messaging fallback.");
+    }
   } catch (e3) {
-    err("BD642 FCM: messaging init chyba:", e3);
+    console.error("BD642 FCM: messaging init chyba:", e3);
     messagingPodporovane = false;
     messaging = null;
   }
 
   if (!messagingPodporovane || !messaging) {
-    setExportsNotSupported("MESSAGING_NEPODPOROVANE", "firebase.messaging.isSupported() = false alebo init zlyhal");
+    window.BD642_FCM = { podporovane: false, dovod: "MESSAGING_NEPODPOROVANE" };
+    window.BD642_ZapnutUpozornenia = async function () { return { ok: false, dovod: "MESSAGING_NEPODPOROVANE" }; };
     return;
   }
 
@@ -119,14 +113,6 @@
   }
 
   async function ulozTokenDoFirestore(token) {
-    // vždy cache lokálne – pomôže diagnostike aj keď Firestore nie je
-    try {
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem("bd642_fcmToken", token);
-        localStorage.setItem("bd642_fcmTokenUpdatedAt", nowIso());
-      }
-    } catch (_) {}
-
     if (!db) return { ulozene: false, dovod: "FIRESTORE_NEDOSTUPNY" };
 
     try {
@@ -140,76 +126,73 @@
         rola: rola,
         userAgent: navigator.userAgent || "",
         jazyk: navigator.language || "",
-        url: (location && location.href ? location.href : ""),
-        aktualizovane: nowIso(),
-        aktualizovane_server:
-          FieldValue && FieldValue.serverTimestamp ? FieldValue.serverTimestamp() : null
+        url: (typeof location !== "undefined" ? (location.href || "") : ""),
+        aktualizovane: new Date().toISOString(),
+        aktualizovane_server: (FieldValue && FieldValue.serverTimestamp) ? FieldValue.serverTimestamp() : null
       };
 
       await db.collection("fcm_tokens").doc(token).set(data, { merge: true });
 
+      // dôležité pre posielanie „na rodinu“
       if (rodina) {
         await db.collection("rodiny").doc(rodina).collection("fcm_tokens").doc(token).set(data, { merge: true });
       }
 
       return { ulozene: true, rodina: rodina || null };
     } catch (e) {
-      err("BD642 FCM: ulozTokenDoFirestore chyba:", e);
+      console.error("BD642 FCM: ulozTokenDoFirestore chyba:", e);
       return { ulozene: false, dovod: "FIRESTORE_CHYBA", detail: String(e && e.message ? e.message : e) };
     }
   }
 
-  // ROOT SW – najspoľahlivejšie pre FCM
-  var SW_SCRIPT = "/firebase-messaging-sw.js";
-  var SW_SCOPE = "/";
+  function scriptUrlJeNasz(sw) {
+    try { return !!(sw && sw.scriptURL && sw.scriptURL.indexOf("/firebase-messaging-sw.js") !== -1); } catch (_) { return false; }
+  }
 
-  async function ensureServiceWorkerRoot() {
+  async function getBd642ServiceWorkerRegistration() {
     if (!("serviceWorker" in navigator)) throw new Error("SW_NEPODPOROVANY");
 
-    // 1) skús existujúci root reg pre náš skript
+    // 1) skús nájsť existujúci (active/waiting/installing)
     try {
       var regs = await navigator.serviceWorker.getRegistrations();
       for (var i = 0; i < regs.length; i++) {
         var reg = regs[i];
         var sw = (reg && (reg.active || reg.waiting || reg.installing)) || null;
-        var url = (sw && sw.scriptURL) ? sw.scriptURL : "";
-        if (url && url.indexOf("firebase-messaging-sw.js") !== -1) {
+        if (sw && (scriptUrlJeNasz(sw) || (sw.scriptURL && sw.scriptURL.indexOf("firebase-messaging-sw.js") !== -1))) {
+          try { await reg.update(); } catch (_) {}
           return reg;
         }
       }
     } catch (_) {}
 
-    // 2) registruj root
-    var reg2 = await navigator.serviceWorker.register(SW_SCRIPT, { scope: SW_SCOPE });
+    // 2) zaregistruj na ROOT (kritické pre PWA/SPA)
+    var reg2 = await navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope: "/" });
 
-    // 3) počkaj na ready (kontrola)
+    // počkaj na ready (aby bol kontroler)
     try { await navigator.serviceWorker.ready; } catch (_) {}
+    try { await reg2.update(); } catch (_) {}
 
     return reg2;
   }
 
-  async function zapnutUpozorneniaInternal() {
-    // hard checks
+  async function vnutorneZapnutUpozornenia() {
+    // Notification API
     if (typeof Notification === "undefined") return { ok: false, dovod: "NOTIFICATION_API_NEDOSTUPNE" };
     if (Notification.permission === "denied") return { ok: false, dovod: "NOTIFICATION_ZABLOKOVANE" };
+
     if (!("serviceWorker" in navigator)) return { ok: false, dovod: "SERVICE_WORKER_NEPODPOROVANY" };
     if (!("PushManager" in window)) return { ok: false, dovod: "PUSHMANAGER_NEPODPOROVANY" };
 
-    // permission (musí byť z user gestu)
+    // vyžiadať povolenie
     var perm = await Notification.requestPermission();
-    if (perm !== "granted") return { ok: false, dovod: "NOTIFICATION_NEPOVOLENE", detail: perm };
+    if (perm !== "granted") return { ok: false, dovod: "NOTIFICATION_NEPOVOLENE" };
 
     try {
-      var swReg = await ensureServiceWorkerRoot();
+      var swReg = await getBd642ServiceWorkerRegistration();
 
-      // v8 – spáruj messaging s týmto SW
-      try {
-        if (typeof messaging.useServiceWorker === "function") messaging.useServiceWorker(swReg);
-      } catch (eUse) {
-        warn("BD642 FCM: useServiceWorker zlyhalo (nie fatálne):", eUse);
-      }
+      // v8 compat – spáruj messaging so SW (plus aj cez getToken param)
+      try { if (typeof messaging.useServiceWorker === "function") messaging.useServiceWorker(swReg); } catch (_) {}
 
-      // token
       var token = await messaging.getToken({
         vapidKey: vapidPublicKey,
         serviceWorkerRegistration: swReg
@@ -224,15 +207,15 @@
 
       return { ok: true, token: token, rodina: uloz.rodina || null };
     } catch (e) {
-      err("BD642 FCM: zapnutie chyba:", e);
+      console.error("BD642 FCM: zapnutie chyba:", e);
       return { ok: false, dovod: "CHYBA_ZAPNUTIA", detail: String(e && e.message ? e.message : e) };
     }
   }
 
-  // Foreground správy – aspoň log (diagnostika)
+  // Foreground správy (log)
   try {
     messaging.onMessage(function (payload) {
-      log("BD642 FCM: foreground message:", payload);
+      console.log("BD642 FCM: foreground message:", payload);
     });
   } catch (_) {}
 
@@ -241,77 +224,91 @@
     if (typeof messaging.onTokenRefresh === "function") {
       messaging.onTokenRefresh(async function () {
         try {
-          warn("BD642 FCM: token refresh – získavam nový token…");
-          var swReg = await ensureServiceWorkerRoot();
-          try {
-            if (typeof messaging.useServiceWorker === "function") messaging.useServiceWorker(swReg);
-          } catch (_) {}
+          console.warn("BD642 FCM: token refresh – získavam nový token…");
+          var swReg = await getBd642ServiceWorkerRegistration();
+          try { if (typeof messaging.useServiceWorker === "function") messaging.useServiceWorker(swReg); } catch (_) {}
           var t = await messaging.getToken({ vapidKey: vapidPublicKey, serviceWorkerRegistration: swReg });
           if (t) await ulozTokenDoFirestore(t);
-          warn("BD642 FCM: token refresh hotovo.");
+          console.warn("BD642 FCM: token refresh hotovo.");
         } catch (e) {
-          err("BD642 FCM: token refresh chyba:", e);
+          console.error("BD642 FCM: token refresh chyba:", e);
         }
       });
     }
   } catch (_) {}
 
-  // Exporty
+  // EXPORTY
   window.BD642_ZapnutUpozornenia = async function () {
-    return await zapnutUpozorneniaInternal();
+    return await vnutorneZapnutUpozornenia();
   };
 
   window.BD642_FCM = {
     podporovane: true,
-    debug: async function () {
-      var swRegs = [];
-      try { swRegs = await navigator.serviceWorker.getRegistrations(); } catch (_) {}
-      var swInfo = [];
-      for (var i = 0; i < (swRegs || []).length; i++) {
-        var r = swRegs[i];
-        var sw = (r && (r.active || r.waiting || r.installing)) || null;
-        swInfo.push({
-          scope: (r && r.scope) ? r.scope : null,
-          scriptURL: (sw && sw.scriptURL) ? sw.scriptURL : null,
-          state: (sw && sw.state) ? sw.state : null
-        });
-      }
 
-      var cachedToken = null, cachedAt = null;
-      try {
-        if (typeof localStorage !== "undefined") {
-          cachedToken = (localStorage.getItem("bd642_fcmToken") || null);
-          cachedAt = (localStorage.getItem("bd642_fcmTokenUpdatedAt") || null);
-        }
-      } catch (_) {}
-
+    debug: function () {
       return {
         messagingPodporovane: true,
         dbPripojene: !!db,
         notificationPermission: (typeof Notification !== "undefined" ? Notification.permission : "N/A"),
         pushManager: ("PushManager" in window),
         serviceWorker: ("serviceWorker" in navigator),
-        swOcekavanyScript: SW_SCRIPT,
-        swOcekavanyScope: SW_SCOPE,
-        swRegistracie: swInfo,
-        tokenLocal: (cachedToken ? (cachedToken.slice(0, 12) + "…") : null),
-        tokenUpdatedAt: cachedAt,
-        rodina: getRodinaPreToken(),
-        userAgent: (navigator.userAgent || "")
+        controller: (navigator.serviceWorker && navigator.serviceWorker.controller) ? true : false,
+        pageUrl: (typeof location !== "undefined" ? location.href : "")
       };
     },
+
+    diag: async function () {
+      var out = { ok: true, kroky: [] };
+      try {
+        out.kroky.push({ krok: "permission", hodnota: (typeof Notification !== "undefined" ? Notification.permission : "N/A") });
+        if ("serviceWorker" in navigator) {
+          var regs = await navigator.serviceWorker.getRegistrations();
+          out.kroky.push({ krok: "sw_registracie", pocet: regs.length });
+          out.kroky.push({ krok: "sw_controller", hodnota: !!navigator.serviceWorker.controller });
+          for (var i = 0; i < regs.length; i++) {
+            var r = regs[i];
+            var sw = (r && (r.active || r.waiting || r.installing)) || null;
+            out.kroky.push({ krok: "sw_" + i, scope: (r && r.scope) || null, scriptURL: (sw && sw.scriptURL) || null });
+          }
+        } else {
+          out.kroky.push({ krok: "sw", chyba: "NIE" });
+        }
+      } catch (e) {
+        out.ok = false;
+        out.chyba = String(e && e.message ? e.message : e);
+      }
+      return out;
+    },
+
     refreshToken: async function () {
       try {
-        var swReg = await ensureServiceWorkerRoot();
-        try {
-          if (typeof messaging.useServiceWorker === "function") messaging.useServiceWorker(swReg);
-        } catch (_) {}
+        var swReg = await getBd642ServiceWorkerRegistration();
+        try { if (typeof messaging.useServiceWorker === "function") messaging.useServiceWorker(swReg); } catch (_) {}
         var token = await messaging.getToken({ vapidKey: vapidPublicKey, serviceWorkerRegistration: swReg });
         if (!token) return { ok: false, dovod: "TOKEN_PRAZDNY" };
         await ulozTokenDoFirestore(token);
         return { ok: true, token: token };
       } catch (e) {
         return { ok: false, dovod: "CHYBA_REFRESH", detail: String(e && e.message ? e.message : e) };
+      }
+    },
+
+    deleteToken: async function () {
+      try {
+        var token = null;
+        try {
+          var swReg = await getBd642ServiceWorkerRegistration();
+          try { if (typeof messaging.useServiceWorker === "function") messaging.useServiceWorker(swReg); } catch (_) {}
+          token = await messaging.getToken({ vapidKey: vapidPublicKey, serviceWorkerRegistration: swReg });
+        } catch (_) {}
+
+        var ok = true;
+        if (token && typeof messaging.deleteToken === "function") {
+          ok = await messaging.deleteToken(token);
+        }
+        return { ok: !!ok, token: token || null };
+      } catch (e) {
+        return { ok: false, dovod: "CHYBA_DELETE", detail: String(e && e.message ? e.message : e) };
       }
     }
   };
