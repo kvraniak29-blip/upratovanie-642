@@ -265,21 +265,6 @@
     .grid2{display:grid;grid-template-columns:1fr;gap:10px}
     @media(min-width:720px){ .grid2{grid-template-columns:1fr 1fr} }
 
-    /* diagnostics */
-    .diagBox{
-      margin-top:10px;
-      border:1px solid var(--fieldLine);
-      border-radius:12px;
-      background:rgba(15,26,46,.55);
-      padding:10px;
-      overflow:auto;
-      max-height:240px;
-      font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size:12px;
-      white-space:pre;
-      color:#dbeafe;
-    }
-
     @media (max-width: 720px){
       :root{ --pad: 12px; }
       header{padding:12px}
@@ -350,7 +335,7 @@
           <h2 style="margin:0">Upozornenia</h2>
           <div class="small" id="remTitle">—</div>
           <div class="small" style="margin-top:6px">
-            Lokálne notifikácie fungujú spoľahlivo, keď je stránka (alebo PWA) otvorená. Pre push notifikácie použi tlačidlo <strong>Zapnúť push</strong> v Nastaveniach (typicky: Chrome/Edge; na iOS je web push obmedzený a často vyžaduje nainštalovanú PWA).
+            Lokálne notifikácie fungujú spoľahlivo, keď je stránka (alebo PWA) otvorená. Pre push notifikácie použi tlačidlo <strong>Zapnúť push</strong> v Nastaveniach (podporované len v niektorých prehliadačoch, napr. Chrome na Androide).
           </div>
         </div>
         <span class="spacer"></span>
@@ -593,9 +578,6 @@
           <div class="row">
             <div style="min-width:0">
               <div style="font-weight:900">Push notifikácie (Firebase)</div>
-              <div class="small" style="margin-top:6px">
-                Odporúčané: <strong>Chrome/Edge</strong>. Pozn.: Na Windows push často prestane chodiť, keď je prehliadač úplne zatvorený (žiadny proces). Na Androide funguje spoľahlivejšie.
-              </div>
             </div>
             <span class="spacer"></span>
             <button class="btn pri" id="btnPushEnable" type="button">
@@ -609,7 +591,7 @@
           </div>
 
           <div class="small" style="margin-top:8px">
-            Pozn.: Prehliadač sa ťa najskôr musí opýtať na povolenie. Ak push nie je podporovaný alebo je zakázaný, zobrazí sa hlásenie.
+            Pozn.: Prehliadač sa ťa najskôr musí opýtať na povolenie. Ak push nie je podporovaný alebo je zakázaný, zobrazí sa hlásenie a tlačidlo ostane neaktívne.
           </div>
         </div>
         <!-- /PUSH -->
@@ -629,30 +611,8 @@
           <div class="small" style="margin-top:10px">
             <strong>iOS (iPhone/iPad):</strong> v Safari otvor stránku → <em>Zdieľať</em> → <em>Pridať na plochu</em>.
           </div>
-          <div class="small" style="margin-top:8px">
-            Ak sa tlačidlo „Nainštalovať“ nikdy neaktivuje, najčastejšia príčina je, že service worker nemá <strong>fetch</strong> handler alebo manifest/ikony nie sú v poriadku. V „Diagnostike“ nižšie uvidíš, čo presne zlyháva.
-          </div>
         </div>
         <!-- /PWA INŠTALÁCIA -->
-
-        <!-- Diagnostika (PWA + SW + Push) -->
-        <div class="card" style="margin-top:12px;padding:12px;background:rgba(15,26,46,.55);border-color:var(--fieldLine)">
-          <div class="row">
-            <div style="min-width:0">
-              <div style="font-weight:900">Diagnostika (PWA / SW / Push)</div>
-              <div class="small" style="margin-top:6px">Rýchla kontrola, prečo nejde inštalácia alebo push.</div>
-            </div>
-            <span class="spacer"></span>
-            <button class="btn mini" id="btnDiagRun"><i class="fa-solid fa-stethoscope"></i> Spustiť</button>
-          </div>
-          <div class="row" style="margin-top:10px">
-            <span class="tag" id="diagPwa"><i class="fa-solid fa-mobile-screen"></i> PWA: —</span>
-            <span class="tag" id="diagSw"><i class="fa-solid fa-shield-halved"></i> SW: —</span>
-            <span class="tag" id="diagPush"><i class="fa-solid fa-bell"></i> Push: —</span>
-          </div>
-          <div class="diagBox" id="diagOut">Klikni „Spustiť“.</div>
-        </div>
-        <!-- /Diagnostika -->
 
         <div class="row" style="margin-top:10px">
           <span class="tag ok" id="prefsSaved"><i class="fa-regular fa-circle"></i> Neuložené</span>
@@ -679,22 +639,6 @@
       </section>
     </main>
   </div>
-
-<script>
-/*
-  INTERNÁ „10 otázok“ kontrola (bez pýtania sa používateľa) – aby bolo PWA+push deterministicky správne:
-  1) Je stránka na HTTPS a nie v iframe? (GitHub Pages: áno, iframe: nie) → logujeme v Diagnostike.
-  2) Je manifest načítateľný (200) a obsahuje name/short_name/start_url/display/icons? → Diagnostika fetch + JSON parse.
-  3) Je registrovaný service worker a má scope na root projektu? → Diagnostika registrácie.
-  4) Má SW fetch handler (nutné pre „installability“ v Chrome/Edge)? → Diagnostika načíta SW súbor a hľadá fetch listener.
-  5) Existujú ikony 192 a 512 a sú načítateľné? → Diagnostika HEAD/GET.
-  6) Je PWA už nainštalovaná (standalone)? → UI zohľadní a prepne tlačidlo.
-  7) Prebehne beforeinstallprompt event? → handler drží deferredPrompt + fallback na manuálnu inštaláciu.
-  8) Je Notification + ServiceWorker + PushManager dostupný? → Diagnostika a UI.
-  9) Je Firebase push modul načítaný a poskytuje BD642_ZapnutUpozornenia()? → Diagnostika.
- 10) Je SW pre FCM registrovaný zo správnej relatívnej cesty (GitHub Pages subcesta)? → registrujeme "./firebase-messaging-sw.js" so scope "./".
-*/
-</script>
 
 <script>
 (function(){
@@ -762,6 +706,114 @@
   /* TRVALÝ STAV PUSH (nezávislý od prihlásenia) */
   const PUSH_STATE_KEY = "bd642_push_state_v1";
   const PUSH_TOKEN_KEY = "bd642_push_token_v1";
+
+  /* PUSH + SERVER SCHEDULING (Cloud Functions) */
+  const FUNCTIONS_BASE = "https://europe-west1-bd-642-26-upratovanie-d2851.cloudfunctions.net";
+  const ALLOWED_FAMILIES = new Set(families);
+
+  function getStoredPushToken(){
+    try{
+      const st = localStorage.getItem(PUSH_STATE_KEY);
+      const tok = localStorage.getItem(PUSH_TOKEN_KEY);
+      if(st === "OK" && tok) return String(tok);
+    }catch(_){}
+    return null;
+  }
+
+  function isPushReallyEnabled(){
+    return !!getStoredPushToken();
+  }
+
+  function buildClientKey(kind, blockId, id){
+    // deterministický kľúč (bez medzier/diakritiky)
+    const fam = meFamily ? norm(meFamily) : "nofam";
+    return `bd642-${kind}-${fam}-${String(blockId)}-${String(id)}`;
+  }
+
+  async function cfPost(path, payload){
+    const url = FUNCTIONS_BASE + path;
+    const r = await fetch(url, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(payload)
+    });
+    let data = null;
+    try{ data = await r.json(); }catch(_){}
+    return { ok:r.ok, status:r.status, data };
+  }
+
+  async function queueServerPush(clientKey, sendAtDt, title, body, url){
+    if(role==="demo" || !online || !meFamily) return { ok:false, skipped:true, reason:"disabled" };
+    if(!isPushReallyEnabled()) return { ok:false, skipped:true, reason:"no-token" };
+
+    const token = getStoredPushToken();
+    if(!token) return { ok:false, skipped:true, reason:"no-token" };
+
+    if(!ALLOWED_FAMILIES.has(meFamily)) return { ok:false, skipped:true, reason:"bad-family" };
+
+    const payload = {
+      family: meFamily,
+      token,
+      clientKey,
+      sendAtIso: sendAtDt.toISOString(),
+      title: title || "BD 642 – Upratovanie",
+      body: body || "",
+      url: url || "./"
+    };
+
+    return await cfPost("/queueReminderPublic", payload);
+  }
+
+  async function cancelServerPush(clientKey){
+    if(role==="demo" || !online || !meFamily) return { ok:false, skipped:true, reason:"disabled" };
+    if(!isPushReallyEnabled()) return { ok:false, skipped:true, reason:"no-token" };
+
+    const token = getStoredPushToken();
+    if(!token) return { ok:false, skipped:true, reason:"no-token" };
+
+    const payload = { family: meFamily, token, clientKey };
+    return await cfPost("/cancelReminderPublic", payload);
+  }
+
+  async function syncAllServerPush(){
+    // Prepočíta a znovu naplánuje všetky budúce PUSH udalosti z lokálneho stavu (reminders + presets)
+    if(role==="demo" || !online || !meFamily) return;
+    if(!isPushReallyEnabled()) return;
+
+    const now = new Date();
+
+    // 1) Jednorazové
+    const f = reminders[meFamily] || {};
+    for(const [bid, list] of Object.entries(f)){
+      if(!Array.isArray(list)) continue;
+      list.forEach(async (r)=>{
+        const dt = new Date(r.dtISO);
+        if(isNaN(dt.getTime()) || dt <= now) return;
+        const block = blocks.find(x=>x.id===Number(bid));
+        if(!block) return;
+        const ck = buildClientKey("one", block.id, r.id);
+        const title = "BD 642 – Upratovanie";
+        const body = `(${displayName[meFamily]}) ${fmtDMY(block.start)} – ${fmtDMY(block.end)}.`;
+        await queueServerPush(ck, dt, title, body, "./");
+      });
+    }
+
+    // 2) Presety (na všetky budúce moje bloky)
+    const ps = getPresetsFor(meFamily);
+    if(ps.length){
+      blocks.forEach(b=>{
+        if(b.family!==meFamily) return;
+        ps.forEach(p=>{
+          const dt = dtInBlockForDowTime(b, p.dow, p.time);
+          if(!dt || dt <= now) return;
+          const ck = buildClientKey("pre", b.id, p.id);
+          const title = "BD 642 – Upratovanie";
+          const body = `(${displayName[meFamily]}) ${fmtDMY(b.start)} – ${fmtDMY(b.end)}.`;
+          queueServerPush(ck, dt, title, body, "./");
+        });
+      });
+    }
+  }
 
   const BASE_START = "2026-01-05";
 
@@ -1247,9 +1299,23 @@
         btn.style.borderColor = "rgba(251,113,133,.35)";
         btn.innerHTML = `<i class="fa-solid fa-trash"></i>`;
         btn.title = "Zmazať jednorazové upozornenie";
-        btn.addEventListener("click", ()=>{
+        btn.addEventListener("click", async ()=>{
           const cur = getRemFor(meFamily, remOpenBlockId).filter(x=>x.id!==r.id);
           setRemFor(meFamily, remOpenBlockId, cur);
+
+          // SERVER PUSH cancel (ak bolo naplánované)
+          try{
+            if(isPushReallyEnabled()){
+              const block = blocks.find(x=>x.id===remOpenBlockId);
+              if(block){
+                const ck = buildClientKey("one", block.id, r.id);
+                await cancelServerPush(ck);
+              }
+            }
+          }catch(e){
+            console.warn("BD642 PUSH: nepodarilo sa zrušiť server push:", e);
+          }
+
           renderRemindersList();
           renderSchedule();
           scheduleNotification();
@@ -1284,7 +1350,7 @@
     if(has){
       perm = Notification.permission === "granted" ? "povolené" : (Notification.permission === "denied" ? "zamietnuté" : "nevyžiadané");
     } else {
-      perm = "nepodporované";
+      perm = "nepodporované (napr. niektoré mobilné prehliadače)";
     }
     n.innerHTML = `<i class="fa-regular fa-bell"></i> Notifikácie: ${escapeHtml(perm)} (${prefs.notifyEnabled==="on" ? "zap." : "vyp."})`;
 
@@ -1536,8 +1602,8 @@
         if(txt) txt.textContent = "Zapínam…";
       }
 
-      if(!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)){
-        alert("Tento prehliadač nepodporuje web push (Notification + Service Worker + PushManager).");
+      if(!("Notification" in window) || !("serviceWorker" in navigator)){
+        alert("Tento prehliadač nepodporuje web push (Notification + Service Worker).");
         setPushUi("UNSUPPORTED");
         return;
       }
@@ -1553,6 +1619,8 @@
 
       if(res && res.ok && res.token){
         setPushUi("OK", res.token);
+        // Po úspešnom zapnutí push: znovu naplánuj všetko z lokálneho stavu
+        try{ await syncAllServerPush(); }catch(_){ }
         return;
       }
 
@@ -1590,8 +1658,8 @@
     rerenderAll();
     scheduleNotification();
 
-    // po prihlásení prepočítaj PWA/push UI (stav push je naviazaný aj na rodinu)
-    try{ window.dispatchEvent(new Event("BD642:PoPrihlaseni")); } catch(_){}
+    try{ window.dispatchEvent(new Event("BD642:PoPrihlaseni")); } catch(_){ }
+    try{ syncAllServerPush(); }catch(_){ }
   }
 
   function doLogout(){
@@ -1655,15 +1723,46 @@
       cur.push({ id, dtISO: dt.toISOString() });
       setRemFor(meFamily, remOpenBlockId, cur);
 
+      // SERVER PUSH (ak je zapnutý) – jednorazové
+      try{
+        if(isPushReallyEnabled()){
+          const block = blocks.find(x=>x.id===remOpenBlockId);
+          if(block){
+            const ck = buildClientKey("one", block.id, id);
+            const title = "BD 642 – Upratovanie";
+            const body = `(${displayName[meFamily]}) ${fmtDMY(block.start)} – ${fmtDMY(block.end)}.`;
+            await queueServerPush(ck, dt, title, body, "./");
+          }
+        }
+      }catch(e){
+        console.warn("BD642 PUSH: nepodarilo sa naplánovať server push:", e);
+      }
+
       $("#remDt").value = "";
       renderRemindersList();
       renderSchedule();
       scheduleNotification();
     });
 
-    $("#remClear").addEventListener("click", ()=>{
+    $("#remClear").addEventListener("click", async ()=>{
       if(role==="demo" || !meFamily || !remOpenBlockId) return;
       if(!confirm("Vymazať jednorazové upozornenia pre tento týždeň?")) return;
+      // Najprv zruš server push pre existujúce jednorazové upozornenia
+      try{
+        if(isPushReallyEnabled()){
+          const block = blocks.find(x=>x.id===remOpenBlockId);
+          const list = getRemFor(meFamily, remOpenBlockId);
+          if(block && Array.isArray(list)){
+            for(const r of list){
+              const ck = buildClientKey("one", block.id, r.id);
+              await cancelServerPush(ck);
+            }
+          }
+        }
+      }catch(e){
+        console.warn("BD642 PUSH: nepodarilo sa zrušiť server push:", e);
+      }
+
       setRemFor(meFamily, remOpenBlockId, []);
       renderRemindersList();
       renderSchedule();
@@ -1690,15 +1789,49 @@
       list.push({ id, dow, time });
       setPresetsFor(meFamily, list);
 
+      // SERVER PUSH: naplánuj pre všetky budúce moje bloky podľa nového presetu
+      try{
+        if(isPushReallyEnabled()){
+          const now = new Date();
+          blocks.forEach(b=>{
+            if(b.family!==meFamily) return;
+            const dt = dtInBlockForDowTime(b, dow, time);
+            if(!dt || dt <= now) return;
+            const ck = buildClientKey("pre", b.id, id);
+            const title = "BD 642 – Upratovanie";
+            const body = `(${displayName[meFamily]}) ${fmtDMY(b.start)} – ${fmtDMY(b.end)}.`;
+            queueServerPush(ck, dt, title, body, "./");
+          });
+        }
+      }catch(e){
+        console.warn("BD642 PUSH: nepodarilo sa naplánovať server push (preset):", e);
+      }
+
       renderPresetState();
       renderRemindersList();
       renderSchedule();
       scheduleNotification();
     });
 
-    $("#presetClear").addEventListener("click", ()=>{
+    $("#presetClear").addEventListener("click", async ()=>{
       if(role==="demo" || !meFamily) return;
       if(!confirm("Zmazať všetky trvalé upozornenia?")) return;
+      // SERVER PUSH: zruš všetky naplánované preset pushy
+      try{
+        if(isPushReallyEnabled()){
+          const ps = getPresetsFor(meFamily);
+          for(const p of ps){
+            for(const b of blocks){
+              if(b.family!==meFamily) continue;
+              const ck = buildClientKey("pre", b.id, p.id);
+              await cancelServerPush(ck);
+            }
+          }
+        }
+      }catch(e){
+        console.warn("BD642 PUSH: nepodarilo sa zrušiť server push (preset clear):", e);
+      }
+
       setPresetsFor(meFamily, []);
       renderPresetState();
       renderRemindersList();
@@ -1851,132 +1984,6 @@
     });
   }
 
-  // ===== Diagnostika =====
-  async function diagRun(){
-    const out = $("#diagOut");
-    const tagPwa = $("#diagPwa");
-    const tagSw = $("#diagSw");
-    const tagPush = $("#diagPush");
-    const lines = [];
-
-    function setTag(tag, cls, text){
-      tag.className = "tag " + (cls || "");
-      tag.innerHTML = text;
-    }
-    function okText(x){ return x ? "OK" : "FAIL"; }
-
-    const isSecure = (location.protocol === "https:" || location.hostname === "localhost");
-    const isIframe = (window.self !== window.top);
-    const isStandalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
-
-    lines.push(`URL: ${location.href}`);
-    lines.push(`Secure (HTTPS/localhost): ${okText(isSecure)}`);
-    lines.push(`V iframe: ${isIframe ? "ÁNO (zlé pre PWA)" : "NIE"}`);
-    lines.push(`Standalone: ${isStandalone ? "ÁNO (už nainštalované)" : "NIE"}`);
-    lines.push("");
-
-    // manifest
-    let manifestOk = false;
-    let man = null;
-    try{
-      const r = await fetch("./manifest.webmanifest", { cache:"no-store" });
-      lines.push(`manifest.webmanifest: ${r.status} ${r.ok ? "OK" : "FAIL"}`);
-      if(r.ok){
-        man = await r.json();
-        const hasName = !!(man && (man.name || man.short_name));
-        const hasStart = !!(man && typeof man.start_url === "string");
-        const hasDisplay = !!(man && (man.display === "standalone" || man.display === "fullscreen" || man.display === "minimal-ui"));
-        const hasIcons = !!(man && Array.isArray(man.icons) && man.icons.length >= 1);
-        manifestOk = hasName && hasStart && hasDisplay && hasIcons;
-        lines.push(`  name/short_name: ${okText(hasName)}`);
-        lines.push(`  start_url: ${okText(hasStart)} (${hasStart ? man.start_url : "—"})`);
-        lines.push(`  display: ${okText(hasDisplay)} (${man && man.display ? man.display : "—"})`);
-        lines.push(`  icons: ${okText(hasIcons)} (${hasIcons ? man.icons.length : 0})`);
-      }
-    }catch(e){
-      lines.push(`manifest.webmanifest: FAIL (${e && e.message ? e.message : e})`);
-    }
-    lines.push("");
-
-    // icons basic check
-    async function checkFile(path){
-      try{
-        const r = await fetch(path, { method:"GET", cache:"no-store" });
-        return { ok: r.ok, status: r.status };
-      }catch(e){
-        return { ok:false, status: 0 };
-      }
-    }
-    const i192 = await checkFile("./icon-192.png");
-    const i512 = await checkFile("./icon-512.png");
-    lines.push(`icon-192.png: ${i192.ok ? "OK" : "FAIL"} (${i192.status})`);
-    lines.push(`icon-512.png: ${i512.ok ? "OK" : "FAIL"} (${i512.status})`);
-    lines.push("");
-
-    // service worker registration + fetch handler
-    let swOk = false;
-    let swFetchOk = false;
-    let swScope = "—";
-    if("serviceWorker" in navigator){
-      try{
-        const regs = await navigator.serviceWorker.getRegistrations();
-        lines.push(`ServiceWorker registrácie: ${regs.length}`);
-        regs.forEach((r, idx)=>{
-          lines.push(`  [${idx}] scope: ${r.scope}`);
-        });
-
-        // pokus: nájsť registráciu pre aktuálny scope (najčastejšie prvá)
-        const reg = regs && regs.length ? regs[0] : null;
-        if(reg){
-          swScope = reg.scope || "—";
-          swOk = true;
-        }
-
-        // fetch handler kontrola (na SW súbore pre FCM)
-        try{
-          const r = await fetch("./firebase-messaging-sw.js", { cache:"no-store" });
-          lines.push(`firebase-messaging-sw.js: ${r.status} ${r.ok ? "OK" : "FAIL"}`);
-          if(r.ok){
-            const txt = await r.text();
-            swFetchOk = /addEventListener\(\s*["']fetch["']/.test(txt) || /self\.onfetch\s*=/.test(txt);
-            lines.push(`  fetch handler: ${swFetchOk ? "OK" : "FAIL (bez fetch – Chrome/Edge potom nedá install)"}`);
-          }
-        }catch(e){
-          lines.push(`firebase-messaging-sw.js: FAIL (${e && e.message ? e.message : e})`);
-        }
-      }catch(e){
-        lines.push(`ServiceWorker: FAIL (${e && e.message ? e.message : e})`);
-      }
-    } else {
-      lines.push("ServiceWorker: nepodporované");
-    }
-    lines.push("");
-
-    // push basics
-    const hasNotif = ("Notification" in window);
-    const hasSW = ("serviceWorker" in navigator);
-    const hasPushMgr = ("PushManager" in window);
-    const notifPerm = hasNotif ? Notification.permission : "—";
-    lines.push(`Notification: ${hasNotif ? "OK" : "FAIL"}`);
-    lines.push(`PushManager: ${hasPushMgr ? "OK" : "FAIL"}`);
-    lines.push(`Notification.permission: ${notifPerm}`);
-    lines.push("");
-
-    // Firebase push modul
-    const hasFn = (typeof window.BD642_ZapnutUpozornenia === "function");
-    lines.push(`BD642_ZapnutUpozornenia(): ${hasFn ? "OK" : "FAIL (bd642_firebase_messaging.js sa nenačítal alebo nevystavil funkciu)"}`);
-
-    // summary tags
-    const pwaScoreOk = isSecure && !isIframe && manifestOk && i192.ok && i512.ok && hasSW && swFetchOk;
-    setTag(tagPwa, pwaScoreOk ? "ok" : "bad", `<i class="fa-solid fa-mobile-screen"></i> PWA: ${pwaScoreOk ? "OK" : "FAIL"}`);
-    setTag(tagSw, (swOk && swFetchOk) ? "ok" : "warn", `<i class="fa-solid fa-shield-halved"></i> SW: ${swOk ? "OK" : "FAIL"} / fetch: ${swFetchOk ? "OK" : "FAIL"}`);
-    const pushScoreOk = hasNotif && hasSW && hasPushMgr && hasFn;
-    setTag(tagPush, pushScoreOk ? "ok" : "warn", `<i class="fa-solid fa-bell"></i> Push: ${pushScoreOk ? "OK" : "CHECK"}`);
-
-    out.textContent = lines.join("\n");
-  }
-
-  // ===== Init =====
   loadPrefs();
   loadReminders();
   loadPresets();
@@ -2001,6 +2008,7 @@
     $("#loginOverlay").setAttribute("aria-hidden","true");
 
     setTimeout(()=>{ try{ window.dispatchEvent(new Event("BD642:PoPrihlaseni")); }catch(_){ } }, 300);
+    setTimeout(()=>{ try{ syncAllServerPush(); }catch(_){ } }, 800);
   } else {
     role = "user";
     meFamily = null;
@@ -2025,15 +2033,6 @@
   wire();
   rerenderAll();
   scheduleNotification();
-
-  // diag button
-  const btnDiag = $("#btnDiagRun");
-  if(btnDiag){
-    btnDiag.addEventListener("click", (e)=>{ e.preventDefault(); diagRun(); });
-  }
-
-  // automatický krátky diag po load (ticho, bez alertov)
-  setTimeout(()=>{ try{ diagRun(); }catch(_){ } }, 1200);
 
   setInterval(()=>{
     const last = blocks[blocks.length-1];
@@ -2065,14 +2064,10 @@
   function isIOS(){
     return /iphone|ipad|ipod/i.test(navigator.userAgent);
   }
-  function isAndroid(){
-    return /android/i.test(navigator.userAgent);
-  }
 
   let deferredPrompt = null;
 
   function setUi(state){
-    // ak už je nainštalované
     if(isStandalone()){
       btn.disabled = true;
       btn.style.opacity = "0.6";
@@ -2081,7 +2076,6 @@
       return;
     }
 
-    // iOS: manuálny postup (Safari)
     if(isIOS()){
       btn.disabled = true;
       btn.style.opacity = "0.75";
@@ -2098,20 +2092,14 @@
       return;
     }
 
-    // fallback: event neprišiel (typicky nie je splnená PWA installability)
     btn.disabled = true;
     btn.style.opacity = "0.6";
     if(txt) txt.textContent = "Nainštalovať";
-    if(isAndroid()){
-      hint.innerHTML = "Inštalácia nie je dostupná automaticky. Skontroluj Diagnostiku. Fallback: menu prehliadača → <strong>Pridať na plochu</strong> / <strong>Inštalovať aplikáciu</strong>.";
-    } else {
-      hint.innerHTML = "Inštalácia nie je dostupná automaticky. Skontroluj Diagnostiku. Fallback: v Chrome/Edge menu → <strong>Inštalovať aplikáciu</strong>.";
-    }
+    hint.textContent = "Inštalácia nie je dostupná. Skontroluj, či je stránka na HTTPS, má manifest a service worker.";
   }
 
   setUi("not-available");
 
-  // niekedy príde event až po chvíli → necháme UI reagovať
   window.addEventListener("beforeinstallprompt", (e)=>{
     e.preventDefault();
     deferredPrompt = e;
@@ -2129,7 +2117,7 @@
       return;
     }
     if(!deferredPrompt){
-      alert("Inštalácia nie je momentálne dostupná. Otvor Diagnostiku (Nastavenia) – typicky chýba fetch handler v SW alebo manifest/ikony.");
+      alert("Inštalácia nie je momentálne dostupná. Skús obnoviť stránku a uisti sa, že používaš Chrome/Edge.");
       return;
     }
     try{
@@ -2146,18 +2134,12 @@
     }
   });
 
-  // refresh UI pri zmene display-mode
   try{
     const mm = window.matchMedia("(display-mode: standalone)");
     if(mm && mm.addEventListener){
-      mm.addEventListener("change", ()=>setUi(deferredPrompt ? "ready" : "not-available"));
+      mm.addEventListener("change", ()=>setUi("not-available"));
     }
   }catch(_){}
-
-  // po load: ak event nepríde, nech aspoň ukáže zmysluplný hint
-  window.addEventListener("load", ()=>{
-    setTimeout(()=>setUi(deferredPrompt ? "ready" : "not-available"), 1200);
-  });
 })();
 </script>
 
@@ -2170,25 +2152,17 @@
 <script src="./bd642_firebase_messaging.js"></script>
 
 <script>
-/*
-  DÔLEŽITÉ PRE „Nainštalovať aplikáciu“ (Chrome/Edge):
-  - Service worker MUSÍ obsahovať fetch handler.
-  - Názov súboru môže byť firebase-messaging-sw.js, ale musí mať:
-      self.addEventListener("fetch", (event)=>{});
-  Ak to nemáš v ./firebase-messaging-sw.js, Chrome/Edge nedá PWA install prompt.
-*/
 (function () {
   if (!("serviceWorker" in navigator)) return;
 
-  // registrácia SW musí byť stabilná, scope "./" pre GitHub Pages subcestu
   window.addEventListener("load", function () {
     navigator.serviceWorker
       .register("./firebase-messaging-sw.js", { scope: "./" })
       .then(function (reg) {
-        console.log("BD642: SW zaregistrovaný:", reg && reg.scope ? reg.scope : reg);
+        console.log("BD642 FCM: SW zaregistrovaný:", reg && reg.scope ? reg.scope : reg);
       })
       .catch(function (err) {
-        console.error("BD642: chyba pri registrácii SW:", err);
+        console.error("BD642 FCM: chyba pri registrácii SW:", err);
       });
   });
 })();

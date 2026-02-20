@@ -6,6 +6,25 @@ admin.initializeApp();
 const REGION = "europe-west1";
 const TZ = "Europe/Bratislava";
 
+async function tokenExistsForFamily(family, token) {
+  const db = admin.firestore();
+  const ref = db.collection("rodiny").doc(family).collection("fcm_tokens").doc(token);
+  const snap = await ref.get();
+  return snap.exists;
+}
+
+const ALLOWED_FAMILIES = new Set(["Cuchorovci", "Markusekovci", "Jarosovci", "Vraniak"]);
+
+function safeStr(x, maxLen) {
+  const s = String(x || "");
+  return s.length > maxLen ? s.slice(0, maxLen) : s;
+}
+
+function parseIsoOrNull(iso) {
+  const d = new Date(String(iso || ""));
+  return isNaN(d.getTime()) ? null : d;
+}
+
 /**
  * BD642_SECRET sa berie zo Secret Manageru:
  * firebase functions:secrets:set BD642_SECRET
@@ -26,10 +45,9 @@ function getProvidedSecret(req) {
 }
 
 /**
- * Jednoduché CORS (ak budeš volať z prehliadača).
- * Ak to voláš len zo skriptu/servera, stále nevadí.
+ * Jednoduché CORS (ak budeš volať zo skriptu/servera).
  */
-function applyCors(req, res) {
+function applyCorsAny(req, res) {
   res.set("Access-Control-Allow-Origin", "*");
   res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.set("Access-Control-Allow-Headers", "Content-Type, X-Secret");
@@ -42,8 +60,37 @@ function applyCors(req, res) {
   return false;
 }
 
+const ALLOWED_ORIGINS = new Set([
+  "https://bd-642-26-upratovanie-d2851.web.app",
+  "https://bd-642-26-upratovanie-d2851.firebaseapp.com",
+  "http://localhost:5000",
+  "http://localhost:8080",
+  "http://localhost:5173",
+]);
+
+function applyCorsAllowlist(req, res) {
+  const origin = String(req.get("origin") || "").trim();
+  if (origin && ALLOWED_ORIGINS.has(origin)) {
+    res.set("Access-Control-Allow-Origin", origin);
+    res.set("Vary", "Origin");
+  } else {
+    // bez Origin (skripty) alebo neznámy origin → neotvárame CORS
+    res.set("Access-Control-Allow-Origin", "null");
+  }
+
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  res.set("Access-Control-Max-Age", "3600");
+
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return true;
+  }
+  return false;
+}
+
 /**
- * HTTP endpoint: naplánuje push
+ * HTTP endpoint: naplánuje push (ADMIN/SCRIPT)
  * POST JSON:
  * {
  *   "secret": "...",                 (alebo X-Secret header)
@@ -59,7 +106,7 @@ exports.queueReminder = functions
   .region(REGION)
   .https.onRequest(async (req, res) => {
     try {
-      if (applyCors(req, res)) return;
+      if (applyCorsAny(req, res)) return;
 
       if (req.method !== "POST") return res.status(405).send("POST only");
 
@@ -92,12 +139,139 @@ exports.queueReminder = functions
 
       const ref = await admin.firestore().collection("scheduled_push").add(doc);
 
-      // Bez logovania secretu – OK
       console.log("queueReminder scheduled", { id: ref.id, family, sendAtIso });
 
       return res.status(200).json({ ok: true, id: ref.id });
     } catch (e) {
       console.error("queueReminder error:", e);
+      return res.status(500).json({ ok: false, error: String(e?.message || e) });
+    }
+  });
+
+/**
+ * HTTP endpoint (PUBLIC z aplikácie): naplánuje push bez secretu.
+ * Ochrana:
+ * - CORS allowlist (len naše hosting domény)
+ * - kontrola family v allowliste
+ * - kontrola, že token existuje v: rodiny/{family}/fcm_tokens/{token}
+ * - clientKey je deterministický (umožní update/cancel)
+ *
+ * POST JSON:
+ * {
+ *   "family": "Cuchorovci",
+ *   "token": "<FCM token>",
+ *   "clientKey": "bd642-one-...",
+ *   "sendAtIso": "2026-01-05T18:00:00.000Z",
+ *   "title": "...",
+ *   "body": "...",
+ *   "url": "./"
+ * }
+ */
+exports.queueReminderPublic = functions
+  .region(REGION)
+  .https.onRequest(async (req, res) => {
+    try {
+      if (applyCorsAllowlist(req, res)) return;
+      if (req.method !== "POST") return res.status(405).send("POST only");
+
+      const b = req.body || {};
+      const family = String(b.family || "").trim();
+      const token = String(b.token || "").trim();
+      const clientKey = String(b.clientKey || "").trim();
+      const sendAtIso = String(b.sendAtIso || "").trim();
+
+      if (!family) return res.status(400).send("missing family");
+      if (!ALLOWED_FAMILIES.has(family)) return res.status(400).send("bad family");
+      if (!token) return res.status(400).send("missing token");
+      if (!clientKey) return res.status(400).send("missing clientKey");
+      if (!sendAtIso) return res.status(400).send("missing sendAtIso");
+
+      const sendAt = parseIsoOrNull(sendAtIso);
+      if (!sendAt) return res.status(400).send("invalid sendAtIso");
+
+      const now = Date.now();
+      const ms = sendAt.getTime() - now;
+      // dovolíme plánovať od -5min do +365 dní
+      if (ms < -5 * 60 * 1000) return res.status(400).send("sendAt in past");
+      if (ms > 365 * 24 * 3600 * 1000) return res.status(400).send("sendAt too far");
+
+      const okTok = await tokenExistsForFamily(family, token);
+      if (!okTok) return res.status(403).send("token not registered for family");
+
+      const doc = {
+        family,
+        sendAt: admin.firestore.Timestamp.fromDate(sendAt),
+        title: safeStr(b.title || "BD 642 – upozornenie", 120),
+        body: safeStr(b.body || "", 500),
+        url: safeStr(b.url || "./", 500),
+        clientKey,
+        canceled: false,
+        sent: false,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      await admin.firestore().collection("scheduled_push").doc(clientKey).set(doc, { merge: true });
+
+      console.log("queueReminderPublic scheduled", { clientKey, family, sendAtIso });
+
+      return res.status(200).json({ ok: true, id: clientKey });
+    } catch (e) {
+      console.error("queueReminderPublic error:", e);
+      return res.status(500).json({ ok: false, error: String(e?.message || e) });
+    }
+  });
+
+/**
+ * HTTP endpoint (PUBLIC z aplikácie): zruší naplánovaný push (nastaví canceled=true).
+ * POST JSON:
+ * {
+ *   "family": "Cuchorovci",
+ *   "token": "<FCM token>",
+ *   "clientKey": "bd642-one-..."
+ * }
+ */
+exports.cancelReminderPublic = functions
+  .region(REGION)
+  .https.onRequest(async (req, res) => {
+    try {
+      if (applyCorsAllowlist(req, res)) return;
+      if (req.method !== "POST") return res.status(405).send("POST only");
+
+      const b = req.body || {};
+      const family = String(b.family || "").trim();
+      const token = String(b.token || "").trim();
+      const clientKey = String(b.clientKey || "").trim();
+
+      if (!family) return res.status(400).send("missing family");
+      if (!ALLOWED_FAMILIES.has(family)) return res.status(400).send("bad family");
+      if (!token) return res.status(400).send("missing token");
+      if (!clientKey) return res.status(400).send("missing clientKey");
+
+      const okTok = await tokenExistsForFamily(family, token);
+      if (!okTok) return res.status(403).send("token not registered for family");
+
+      const ref = admin.firestore().collection("scheduled_push").doc(clientKey);
+      const snap = await ref.get();
+      if (!snap.exists) return res.status(200).json({ ok: true, id: clientKey, alreadyMissing: true });
+
+      const data = snap.data() || {};
+      if (String(data.family || "").trim() !== family) return res.status(403).send("family mismatch");
+
+      await ref.set(
+        {
+          canceled: true,
+          canceledAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      console.log("cancelReminderPublic canceled", { clientKey, family });
+
+      return res.status(200).json({ ok: true, id: clientKey });
+    } catch (e) {
+      console.error("cancelReminderPublic error:", e);
       return res.status(500).json({ ok: false, error: String(e?.message || e) });
     }
   });
@@ -131,6 +305,11 @@ exports.tick = functions
     for (const doc of snap.docs) {
       const data = doc.data() || {};
       const family = String(data.family || "").trim();
+
+      if (data && data.canceled) {
+        await doc.ref.set({ sent: true, sentError: "canceled" }, { merge: true });
+        continue;
+      }
 
       if (!family) {
         await doc.ref.set({ sent: true, sentError: "missing family" }, { merge: true });
