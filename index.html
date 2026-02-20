@@ -2151,20 +2151,43 @@
 <!-- DÔLEŽITÉ: relatívna cesta (GitHub Pages subcesta) -->
 <script src="./bd642_firebase_messaging.js"></script>
 
+<!-- =======================================================
+     BD642: ROBUSTNÁ SW REGISTRÁCIA (FIX pre installability)
+     - registrácia hneď (ak je DOM ready) + aj na "load"
+     - scope "./" a URL cez new URL(.., location.href) kvôli subceste GH Pages
+     - refresh() pre aktiváciu
+     - logovanie do konzoly
+======================================================= -->
 <script>
 (function () {
   if (!("serviceWorker" in navigator)) return;
 
-  window.addEventListener("load", function () {
-    navigator.serviceWorker
-      .register("./firebase-messaging-sw.js", { scope: "./" })
-      .then(function (reg) {
-        console.log("BD642 FCM: SW zaregistrovaný:", reg && reg.scope ? reg.scope : reg);
-      })
-      .catch(function (err) {
-        console.error("BD642 FCM: chyba pri registrácii SW:", err);
-      });
-  });
+  const SW_URL = new URL("./firebase-messaging-sw.js", window.location.href).toString();
+
+  async function registerSW() {
+    try {
+      const reg = await navigator.serviceWorker.register(SW_URL, { scope: "./" });
+      console.log("BD642 SW: zaregistrovaný:", reg && reg.scope ? reg.scope : reg);
+
+      // pokus o rýchle prevzatie kontroly (nie vždy nutné, ale pomáha)
+      try { reg.update(); } catch(_) {}
+      try {
+        if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+      } catch(_) {}
+      return true;
+    } catch (err) {
+      console.error("BD642 SW: chyba pri registrácii:", err);
+      return false;
+    }
+  }
+
+  // DOM ready / load – aby to prebehlo aj pri rýchlom cache load-e
+  if (document.readyState === "complete") {
+    registerSW();
+  } else {
+    window.addEventListener("load", registerSW, { once: true });
+    document.addEventListener("DOMContentLoaded", registerSW, { once: true });
+  }
 })();
 </script>
 
