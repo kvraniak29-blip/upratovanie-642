@@ -19,6 +19,7 @@ function getSecretEnv() {
  * Preferuj secret v HTTP hlavičke (X-Secret), až potom v body.secret.
  */
 function getProvidedSecret(req) {
+  // express headers sú case-insensitive, ale necháme to explicitne
   const h = String(req.get("x-secret") || req.get("X-Secret") || "").trim();
   const b = String((req.body && req.body.secret) || "").trim();
   return h || b;
@@ -32,6 +33,8 @@ function applyCors(req, res) {
   res.set("Access-Control-Allow-Origin", "*");
   res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.set("Access-Control-Allow-Headers", "Content-Type, X-Secret");
+  res.set("Access-Control-Max-Age", "3600");
+
   if (req.method === "OPTIONS") {
     res.status(204).send("");
     return true;
@@ -88,6 +91,10 @@ exports.queueReminder = functions
       };
 
       const ref = await admin.firestore().collection("scheduled_push").add(doc);
+
+      // Bez logovania secretu – OK
+      console.log("queueReminder scheduled", { id: ref.id, family, sendAtIso });
+
       return res.status(200).json({ ok: true, id: ref.id });
     } catch (e) {
       console.error("queueReminder error:", e);
@@ -133,6 +140,7 @@ exports.tick = functions
       const tokSnap = await db.collection("rodiny").doc(family).collection("fcm_tokens").get();
       const tokDocs = tokSnap.docs;
 
+      // token môže byť v d.data().token alebo ako doc.id
       const tokens = tokDocs
         .map((d) => String((d.data() || {}).token || d.id))
         .map((t) => t.trim())
@@ -153,6 +161,7 @@ exports.tick = functions
         notification: { title, body },
         data: { url, ts: new Date().toISOString() },
         webpush: {
+          // Admin SDK používa fcmOptions (camelCase)
           fcmOptions: { link: url },
           headers: { Urgency: "high" },
         },
@@ -189,6 +198,7 @@ exports.tick = functions
           deletions.push(tokDocs[i].ref.delete());
         }
       });
+
       if (deletions.length) await Promise.allSettled(deletions);
 
       await doc.ref.set(
