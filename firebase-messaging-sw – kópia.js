@@ -1,5 +1,5 @@
 // firebase-messaging-sw.js
-// BD642 – Service Worker pre FCM (Firebase SDK v8) + PWA installability (bez rozbíjania requestov)
+// BD642 – Service Worker pre FCM (Firebase SDK v8) + PWA installability
 
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js");
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js");
@@ -33,16 +33,15 @@ function safeGet(obj, path, defVal) {
   } catch (_) { return defVal; }
 }
 
-function scopeBase() {
+function absFromScope(rel) {
   try {
-    return (self.registration && self.registration.scope) ? self.registration.scope : (self.location.origin + "/");
+    var scope = (self.registration && self.registration.scope)
+      ? self.registration.scope
+      : (self.location.origin + "/");
+    return new URL(rel, scope).href;
   } catch (_) {
-    return "./";
+    return rel;
   }
-}
-
-function absUrlMaybe(relOrAbs) {
-  try { return new URL(relOrAbs, scopeBase()).href; } catch (_) { return relOrAbs; }
 }
 
 // --- rýchle prebratie novej verzie SW ---
@@ -56,7 +55,7 @@ self.addEventListener("activate", function (event) {
   })());
 });
 
-// umožní manuálne vyvolať skipWaiting z klienta (ak budeš chcieť)
+// --- DÔLEŽITÉ: aby fungoval postMessage({type:"SKIP_WAITING"}) z klienta ---
 self.addEventListener("message", function (event) {
   try {
     if (event && event.data && event.data.type === "SKIP_WAITING") {
@@ -65,42 +64,17 @@ self.addEventListener("message", function (event) {
   } catch (_) {}
 });
 
-// --- PWA installability: fetch handler MUSÍ existovať ---
-// Bezpečná implementácia: rieš len navigácie a jednoduché same-origin GET.
-// (Nevkladáme cache logiku, len transparentný passthrough.)
-self.addEventListener("fetch", function (event) {
-  try {
-    var req = event.request;
-    if (!req) return;
-
-    // navigácia (SPA/PWA installability check)
-    if (req.mode === "navigate") {
-      event.respondWith(fetch(req));
-      return;
-    }
-
-    // len same-origin GET passthrough (nezahŕňame POST, range, atď.)
-    var url = new URL(req.url);
-    if (req.method === "GET" && url.origin === self.location.origin) {
-      event.respondWith(fetch(req));
-      return;
-    }
-  } catch (_) {}
-});
+// --- PWA installability: fetch handler musí existovať (NO-OP) ---
+// Pozn.: NEROB respondWith(fetch(..)) – je to zbytočné a môže rozbíjať requesty.
+self.addEventListener("fetch", function (_event) {});
 
 // --- Jednotné zobrazenie notifikácie ---
-// POZN: Ak z backendu posielaš "notification" payload, Chrome môže notifikáciu zobraziť sám
-// a handler sa nemusí volať. Najistejšie pre kontrolu je posielať data-only.
 function showBgNotification(payload) {
   try {
-    var title = safeGet(payload, "notification.title", null) ||
-                safeGet(payload, "data.title", null) ||
-                "BD 642 – upozornenie";
+    var title = safeGet(payload, "notification.title", "BD 642 – upozornenie");
+    var body  = safeGet(payload, "notification.body", "");
 
-    var body = safeGet(payload, "notification.body", null) ||
-               safeGet(payload, "data.body", null) ||
-               "";
-
+    // URL preferuj z data.url (posielaš to z Functions)
     var url =
       safeGet(payload, "data.url", null) ||
       safeGet(payload, "data.link", null) ||
@@ -108,19 +82,20 @@ function showBgNotification(payload) {
       safeGet(payload, "fcmOptions.link", null) ||
       "./";
 
-    var iconRel  = safeGet(payload, "notification.icon", null)  || safeGet(payload, "data.icon", null)  || "./icon-192.png";
-    var badgeRel = safeGet(payload, "notification.badge", null) || safeGet(payload, "data.badge", null) || "./icon-192.png";
+    var iconRel  = safeGet(payload, "notification.icon", "./icon-192.png");
+    var badgeRel = safeGet(payload, "notification.badge", "./icon-192.png");
 
     var options = {
       body: body,
-      icon: absUrlMaybe(iconRel),
-      badge: absUrlMaybe(badgeRel),
+      icon: absFromScope(iconRel.startsWith(".") ? iconRel : ("./" + iconRel)),
+      badge: absFromScope(badgeRel.startsWith(".") ? badgeRel : ("./" + badgeRel)),
       data: { url: url }
     };
 
+    // DÔLEŽITÉ: vráť Promise (nech SW event počká)
     return self.registration.showNotification(title, options);
-  } catch (_) {
-    try { return Promise.resolve(); } catch (__) {}
+  } catch (e) {
+    try { return Promise.resolve(); } catch (_) { return; }
   }
 }
 
@@ -131,11 +106,10 @@ if (messaging && typeof messaging.setBackgroundMessageHandler === "function") {
   });
 }
 
-// --- Fallback push handler (ak príde push mimo FCM hooku) ---
+// --- Fallback: ak príde "push" event mimo FCM handlera (niekedy sa to hodí) ---
 self.addEventListener("push", function (event) {
   try {
     if (!event || !event.data) return;
-
     var data = null;
     try { data = event.data.json(); }
     catch (_) { data = { data: { body: event.data.text() } }; }
@@ -144,32 +118,34 @@ self.addEventListener("push", function (event) {
   } catch (_) {}
 });
 
-// --- Klik na notifikáciu: otvor/zaostri app + naviguj ---
+// --- Klik na notifikáciu: otvor/zaostri app ---
 self.addEventListener("notificationclick", function (event) {
-  try { event.notification.close(); } catch (_) {}
+  try { event.notification.close(); } catch (e) {}
 
-  var target = "./";
+  var targetUrl = "./";
   try {
     if (event.notification && event.notification.data && event.notification.data.url) {
-      target = event.notification.data.url;
+      targetUrl = event.notification.data.url;
     }
   } catch (_) {}
 
-  var targetUrl = absUrlMaybe(target);
-  var origin = null;
-  try { origin = new URL(targetUrl).origin; } catch (_) { origin = self.location.origin; }
+  // urob absolútnu URL v rámci scope
+  try {
+    var scope = (self.registration && self.registration.scope)
+      ? self.registration.scope
+      : (self.location.origin + "/");
+    targetUrl = new URL(targetUrl, scope).href;
+  } catch (_) {}
 
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientsArr) {
-      // preferuj existujúce okno na rovnakom origin
-      for (var i = 0; i < clientsArr.length; i++) {
-        var c = clientsArr[i];
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
         try {
-          if (c && c.url && (new URL(c.url).origin === origin)) {
-            // fokus + navigácia ak je podporovaná
-            if ("focus" in c) c.focus();
-            if ("navigate" in c) return c.navigate(targetUrl);
-            return c;
+          if (client && "focus" in client) {
+            // ak chceš vždy presmerovať existujúce okno na targetUrl, odkomentuj:
+            // if ("navigate" in client) return client.navigate(targetUrl).then(function(){ return client.focus(); });
+            return client.focus();
           }
         } catch (_) {}
       }
