@@ -35,7 +35,9 @@ function safeGet(obj, path, defVal) {
 
 function absFromScope(rel) {
   try {
-    var scope = (self.registration && self.registration.scope) ? self.registration.scope : self.location.origin + "/";
+    var scope = (self.registration && self.registration.scope)
+      ? self.registration.scope
+      : (self.location.origin + "/");
     return new URL(rel, scope).href;
   } catch (_) {
     return rel;
@@ -51,6 +53,15 @@ self.addEventListener("activate", function (event) {
   event.waitUntil((async function () {
     try { await self.clients.claim(); } catch (e) {}
   })());
+});
+
+// --- DÔLEŽITÉ: aby fungoval postMessage({type:"SKIP_WAITING"}) z klienta ---
+self.addEventListener("message", function (event) {
+  try {
+    if (event && event.data && event.data.type === "SKIP_WAITING") {
+      self.skipWaiting();
+    }
+  } catch (_) {}
 });
 
 // --- PWA installability: fetch handler musí existovať (NO-OP) ---
@@ -76,8 +87,8 @@ function showBgNotification(payload) {
 
     var options = {
       body: body,
-      icon: absFromScope(iconRel.startsWith(".") ? iconRel : "./" + iconRel),
-      badge: absFromScope(badgeRel.startsWith(".") ? badgeRel : "./" + badgeRel),
+      icon: absFromScope(iconRel.startsWith(".") ? iconRel : ("./" + iconRel)),
+      badge: absFromScope(badgeRel.startsWith(".") ? badgeRel : ("./" + badgeRel)),
       data: { url: url }
     };
 
@@ -100,9 +111,9 @@ self.addEventListener("push", function (event) {
   try {
     if (!event || !event.data) return;
     var data = null;
-    try { data = event.data.json(); } catch (_) { data = { data: { body: event.data.text() } }; }
+    try { data = event.data.json(); }
+    catch (_) { data = { data: { body: event.data.text() } }; }
 
-    // Ak FCM už spracoval notification payload, toto nemusí prísť – ale ak príde, ukážeme.
     event.waitUntil(showBgNotification(data));
   } catch (_) {}
 });
@@ -120,19 +131,20 @@ self.addEventListener("notificationclick", function (event) {
 
   // urob absolútnu URL v rámci scope
   try {
-    var scope = (self.registration && self.registration.scope) ? self.registration.scope : self.location.origin + "/";
+    var scope = (self.registration && self.registration.scope)
+      ? self.registration.scope
+      : (self.location.origin + "/");
     targetUrl = new URL(targetUrl, scope).href;
   } catch (_) {}
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
-      // ak existuje okno na rovnakej origin, fokusni ho a naviguj
       for (var i = 0; i < clientList.length; i++) {
         var client = clientList[i];
         try {
           if (client && "focus" in client) {
-            // ak je to rovnaký origin, len ho fokusni; ak chceš vždy presmerovať, odkomentuj navigate
-            // if ("navigate" in client) client.navigate(targetUrl);
+            // ak chceš vždy presmerovať existujúce okno na targetUrl, odkomentuj:
+            // if ("navigate" in client) return client.navigate(targetUrl).then(function(){ return client.focus(); });
             return client.focus();
           }
         } catch (_) {}
