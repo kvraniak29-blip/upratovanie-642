@@ -2,1919 +2,1238 @@
 <html lang="sk">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0b1220" />
-  <title>Upratovací plánovač BD 642</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-
-  <!-- Ikony (GitHub Pages friendly – relatívne cesty) -->
-  <link rel="icon" href="./icon-192.png" />
-  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <title>Upratovací Plánovač BD 642</title>
+  <meta name="description" content="Rozpis upratovania BD 642 + lokálne pripomienky + (voliteľne) Push notifikácie cez Firebase." />
 
   <style>
     :root{
       --bg:#0b1220;
-      --card:#0f1a2e;
-      --text:#e6eefc;
-      --muted:#9fb0d0;
-      --line:rgba(255,255,255,.10);
-      --shadow:0 12px 30px rgba(0,0,0,.35);
-
-      --pri:#22d3ee;
-      --pri2:#60a5fa;
-      --ok:#34d399;
-      --warn:#fbbf24;
-      --bad:#fb7185;
-
-      --hlBg:rgba(34,211,238,.12);
-      --hlLine:#22d3ee;
-      --hlText:#7dd3fc;
-
-      --r:16px;
-
-      --fieldBg: rgba(15,26,46,.92);
-      --fieldLine: rgba(255,255,255,.18);
-
-      --modalBg: #0b1730;
-      --modalLine: rgba(255,255,255,.18);
-
-      --pad: 14px;
-      --tap: 44px;
-      --fs-1: 12px;
-      --fs-2: 13px;
-      --fs-3: 15px;
-      --fs-4: 16px;
-      --fs-5: 18px;
+      --panel:#0f1a33;
+      --panel2:#0c1630;
+      --text:#e7eeff;
+      --muted:#a7b7e6;
+      --accent:#54d3ff;
+      --accent2:#9b7bff;
+      --good:#46f2a3;
+      --warn:#ffd37a;
+      --bad:#ff6b8b;
+      --border:rgba(255,255,255,.10);
+      --shadow:0 10px 30px rgba(0,0,0,.45);
+      --radius:18px;
+      --radius2:24px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
     }
-
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
       margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      font-family:var(--sans);
       background:
-        radial-gradient(1200px 800px at 20% 10%, rgba(34,211,238,.10), transparent 55%),
-        radial-gradient(1000px 700px at 90% 30%, rgba(96,165,250,.12), transparent 55%),
+        radial-gradient(1200px 600px at 12% 18%, rgba(84,211,255,.22), transparent 60%),
+        radial-gradient(900px 700px at 88% 20%, rgba(155,123,255,.18), transparent 60%),
+        radial-gradient(700px 800px at 70% 90%, rgba(70,242,163,.12), transparent 60%),
         var(--bg);
       color:var(--text);
-      color-scheme: dark;
-      -webkit-text-size-adjust:100%;
-      text-rendering:optimizeLegibility;
+      overflow-x:hidden;
     }
     a{color:inherit}
-    .app{max-width:1180px;margin:0 auto;padding:var(--pad);padding-bottom:calc(var(--pad) + env(safe-area-inset-bottom))}
+    .wrap{max-width:1200px;margin:0 auto;padding:18px 14px 34px}
     header{
-      background:linear-gradient(135deg, rgba(34,211,238,.22), rgba(96,165,250,.18));
-      border:1px solid var(--line);
-      color:var(--text);border-radius:18px;padding:14px 14px 12px;box-shadow:var(--shadow);
+      display:flex;gap:14px;align-items:center;justify-content:space-between;
+      padding:16px 16px;border:1px solid var(--border);border-radius:var(--radius2);
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      box-shadow:var(--shadow);
+      position:sticky;top:10px;z-index:50;
       backdrop-filter: blur(10px);
     }
-
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .spacer{flex:1}
-    .muted{color:var(--muted);font-size:var(--fs-1);line-height:1.5;margin:0}
-
-    .brand{display:flex;align-items:center;gap:10px;min-width:260px}
-    .brand .logo{
-      width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.08);
-      border:1px solid var(--line);
-      display:grid;place-items:center;flex:0 0 auto
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{
+      width:44px;height:44px;border-radius:14px;
+      background:
+        radial-gradient(14px 14px at 30% 30%, rgba(255,255,255,.35), transparent 60%),
+        linear-gradient(135deg, rgba(84,211,255,.95), rgba(155,123,255,.95));
+      box-shadow:0 10px 25px rgba(84,211,255,.12);
+      flex:none;
     }
-    .brand h1{font-size:var(--fs-4);margin:0;line-height:1.2}
-    .brand .sub{display:none !important;}
-
-    .top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
-    .status{
-      display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:var(--fs-1);
-      max-width:100%;
+    .title{line-height:1.1}
+    .title h1{margin:0;font-size:18px;letter-spacing:.2px}
+    .title .sub{margin-top:4px;font-size:12px;color:var(--muted)}
+    .hdrRight{display:flex;gap:10px;align-items:center}
+    .chip{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 10px;border-radius:999px;border:1px solid var(--border);
+      background:rgba(0,0,0,.2);
+      font-size:12px;color:var(--muted);
+      user-select:none;
     }
-    .pill{
-      background:rgba(255,255,255,.06);
-      border:1px solid var(--line);
-      padding:6px 10px;border-radius:999px;display:flex;gap:8px;align-items:center;
-      max-width:100%;
+    .chip b{color:var(--text);font-weight:700}
+    .btn{
+      appearance:none;border:1px solid var(--border);background:rgba(255,255,255,.04);
+      color:var(--text);border-radius:12px;padding:9px 12px;
+      cursor:pointer;font-weight:700;font-size:13px;
+      transition:.15s transform,.15s background,.15s border-color;
+      touch-action:manipulation;
     }
-    .dot{width:8px;height:8px;border-radius:999px;background:#fff;opacity:.9}
-    .dot.ok{background:var(--ok)}
-    .dot.off{background:var(--bad)}
-    .dot.sync{background:var(--warn)}
-
-    .tabs{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
-    .tabbtn{
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.06);
-      color:var(--text);
-      padding:10px 12px;border-radius:999px;font-weight:800;
-      cursor:pointer;display:flex;gap:8px;align-items:center;font-size:var(--fs-2);
-      min-height:var(--tap);
-      -webkit-tap-highlight-color: transparent;
+    .btn:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.16)}
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{
+      background:linear-gradient(135deg, rgba(84,211,255,.25), rgba(155,123,255,.22));
+      border-color:rgba(84,211,255,.35);
     }
-    .tabbtn[aria-selected="true"]{background:rgba(34,211,238,.16);border-color:rgba(34,211,238,.35)}
-
-    main{margin-top:14px;display:grid;gap:12px}
+    .btn.good{border-color:rgba(70,242,163,.35);background:rgba(70,242,163,.10)}
+    .btn.bad{border-color:rgba(255,107,139,.35);background:rgba(255,107,139,.10)}
+    .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+    .btn.mini{padding:7px 10px;border-radius:10px;font-size:12px}
+    .btn.icon{display:inline-flex;align-items:center;gap:8px}
+    .grid{
+      margin-top:16px;
+      display:grid;grid-template-columns: 1.4fr .9fr;
+      gap:14px;
+    }
+    @media(max-width:980px){.grid{grid-template-columns:1fr}}
     .card{
-      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      border:1px solid var(--line);border-radius:var(--r);
-      box-shadow:0 1px 0 rgba(0,0,0,.3);
-      padding:14px;
+      border:1px solid var(--border);
+      border-radius:var(--radius2);
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      box-shadow:var(--shadow);
       overflow:hidden;
     }
-    .card h2{margin:0 0 8px;font-size:var(--fs-4)}
-    .btn{
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.05);
-      color:var(--text);
-      padding:10px 12px;border-radius:12px;font-weight:800;cursor:pointer;font-size:var(--fs-2);
-      min-height:var(--tap);
-      -webkit-tap-highlight-color: transparent;
+    .card .hd{
+      padding:14px 16px;
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      background:linear-gradient(180deg, rgba(0,0,0,.20), rgba(0,0,0,0));
     }
-    .btn.pri{background:linear-gradient(135deg, rgba(34,211,238,.85), rgba(96,165,250,.75));border-color:rgba(34,211,238,.35);color:#07101c}
-    .btn:disabled{opacity:.45;cursor:not-allowed}
-    .mini{font-size:var(--fs-2);padding:8px 10px;border-radius:10px;min-height:40px}
-    .tag{
-      display:inline-flex;gap:8px;align-items:center;
-      border:1px solid var(--line);padding:6px 10px;border-radius:999px;
-      font-size:var(--fs-1);color:var(--muted);
-      background:rgba(255,255,255,.04)
+    .card .hd h2{margin:0;font-size:15px}
+    .card .hd .hint{font-size:12px;color:var(--muted)}
+    .card .bd{padding:14px 16px}
+    .badge{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:4px 8px;border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,.18);
+      font-size:12px;color:var(--muted);
+      user-select:none;
     }
-    .tag.ok{border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.10);color:#bbf7d0}
-    .tag.bad{border-color:rgba(251,113,133,.35);background:rgba(251,113,133,.10);color:#fecdd3}
-    .tag.warn{border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.10);color:#fde68a}
-
+    .badgeNow{border-color:rgba(84,211,255,.35);color:var(--text)}
+    .badgeDone{border-color:rgba(70,242,163,.35);color:var(--text)}
+    .badgeSwap{border-color:rgba(255,211,122,.35);color:var(--text)}
+    .mono{font-family:var(--mono)}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .row.space{justify-content:space-between}
+    .tabs{
+      display:flex;gap:6px;flex-wrap:wrap;
+      padding:10px 10px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      background:rgba(0,0,0,.12);
+    }
+    .tabbtn{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+      padding:8px 10px;border-radius:12px;
+      font-weight:800;font-size:12px;
+      cursor:pointer;
+      touch-action:manipulation;
+    }
+    .tabbtn.active{color:var(--text);border-color:rgba(84,211,255,.35);background:rgba(84,211,255,.10)}
+    .tab{
+      display:none;
+      padding:14px 16px;
+    }
+    .tab.active{display:block}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:middle}
+    th{font-size:12px;color:var(--muted);text-align:left;font-weight:800}
+    td{font-size:13px}
+    tr:hover td{background:rgba(255,255,255,.02)}
+    .colActions{white-space:nowrap}
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+    .sep{height:1px;background:rgba(255,255,255,.06);margin:12px 0}
+    .field{
+      display:flex;flex-direction:column;gap:7px;
+      padding:12px;border:1px solid rgba(255,255,255,.08);
+      background:rgba(0,0,0,.18);
+      border-radius:16px;
+    }
+    label{font-size:12px;color:var(--muted);font-weight:800}
     input,select,textarea{
       width:100%;
-      padding:12px 12px;
-      border:1px solid var(--fieldLine);
-      border-radius:12px;
-      font:inherit;
-      background:var(--fieldBg);
+      border-radius:12px;border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.03);
       color:var(--text);
+      padding:10px 10px;
       outline:none;
-      font-size:16px;
+      font-size:13px;
     }
-    textarea{min-height:110px;resize:vertical}
-    input::placeholder, textarea::placeholder{ color: rgba(159,176,208,.75); }
-    input:focus,select:focus,textarea:focus{
-      border-color: rgba(34,211,238,.45);
-      box-shadow: 0 0 0 3px rgba(34,211,238,.12);
+    textarea{min-height:80px;resize:vertical}
+    .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media(max-width:640px){.two{grid-template-columns:1fr}}
+    .note{
+      padding:10px 12px;border-radius:14px;
+      border:1px solid rgba(84,211,255,.20);
+      background:rgba(84,211,255,.08);
+      color:var(--text);
+      font-size:12px;
     }
-    select, option{ background-color: var(--modalBg); color: var(--text); }
-
-    .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
-    table{width:100%;border-collapse:collapse;min-width:1020px;background:transparent}
-    th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;font-size:var(--fs-2);vertical-align:top}
-    th{font-size:var(--fs-1);color:var(--muted);background:rgba(255,255,255,.03)}
-    tr:last-child td{border-bottom:none}
-    tr.current td{background:var(--hlBg)}
-    tr.current td:first-child{box-shadow:inset 4px 0 0 var(--hlLine)}
-    .badgeNow{
-      display:inline-flex;gap:6px;align-items:center;
-      font-size:var(--fs-1);font-weight:900;color:var(--hlText);
-      border:1px solid rgba(34,211,238,.30);background:rgba(255,255,255,.04);border-radius:999px;
-      padding:4px 8px;margin-left:10px
-    }
-
-    .mobileSchedule{display:none;margin-top:12px;gap:10px}
-    .wcard{
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:12px;
-      background:rgba(15,26,46,.55);
-    }
-    .whead{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
-    .wleft{min-width:0}
-    .wweek{font-weight:900;font-size:var(--fs-3);line-height:1.2}
-    .wfam{margin-top:6px;font-weight:800}
-    .wnote{margin-top:8px;color:var(--muted);font-size:var(--fs-1);line-height:1.45}
-    .wactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-
-    .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-    @media(min-width:700px){ .kpi{grid-template-columns:repeat(4,1fr)} }
-    .k{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:10px;min-width:0}
-    .k .v{font-size:var(--fs-5);font-weight:900;word-break:break-word}
-    .k .l{font-size:var(--fs-1);color:var(--muted)}
-
+    .note.warn{border-color:rgba(255,211,122,.22);background:rgba(255,211,122,.08)}
+    .note.bad{border-color:rgba(255,107,139,.22);background:rgba(255,107,139,.08)}
     .overlay{
-      position:fixed;inset:0;z-index:80;
+      position:fixed;inset:0;
+      background:rgba(0,0,0,.65);
       display:flex;align-items:center;justify-content:center;
-      background:rgba(0,0,0,.82);
-      backdrop-filter: blur(6px);
-      padding:16px;
+      z-index:200;
+      padding:18px;
     }
-    .loginCard{
-      width:min(520px,100%);
-      background:var(--modalBg);
-      border:1px solid var(--modalLine);
-      border-radius:18px;
-      box-shadow:0 20px 60px rgba(0,0,0,.65);
-      padding:14px;
+    .overlay.hidden{display:none !important}
+    .modal{
+      width:min(560px, 96vw);
+      border:1px solid rgba(255,255,255,.10);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      box-shadow:0 20px 70px rgba(0,0,0,.6);
+      border-radius:22px;
+      overflow:hidden;
     }
-    .loginCard h2{margin:0 0 6px;font-size:var(--fs-4)}
-    .loginGrid{display:grid;gap:10px;margin-top:10px}
-    .divider{height:1px;background:var(--line);margin:12px 0}
-    .small{font-size:var(--fs-1);color:var(--muted);line-height:1.45}
-    .hidden{display:none !important}
-    .err{margin-top:8px;display:none}
-    .err.show{display:flex}
-
-    .chatBox{
-      border:1px solid var(--fieldLine);
-      border-radius:12px;
-      background:rgba(15,26,46,.55);
-      max-height:320px;
-      overflow:auto;
-      padding:10px;
-      overscroll-behavior:contain;
+    .modal .mh{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center}
+    .modal .mh h3{margin:0;font-size:15px}
+    .modal .mb{padding:14px 16px}
+    .modal .mf{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+    .list{display:flex;flex-direction:column;gap:10px}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 10px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(0,0,0,.18);
+      font-size:12px;color:var(--muted);
+      cursor:pointer;
+      touch-action:manipulation;
     }
-
-    /* Reminders modal */
-    .remCard{
-      width:min(760px,100%);
-      background:var(--modalBg);
-      border:1px solid var(--modalLine);
-      border-radius:18px;
-      box-shadow:0 20px 60px rgba(0,0,0,.65);
-      padding:14px;
+    .pill.active{border-color:rgba(70,242,163,.35);color:var(--text);background:rgba(70,242,163,.10)}
+    .kpi{
+      display:grid;grid-template-columns:1fr 1fr;gap:10px;
     }
-    .remList{
-      margin-top:10px;
-      border:1px solid var(--fieldLine);
-      border-radius:12px;
-      background:rgba(15,26,46,.55);
-      padding:10px;
-      max-height:260px;
-      overflow:auto;
+    .kpi .box{
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;padding:12px;background:rgba(0,0,0,.18);
     }
-    .remItem{
-      display:flex;gap:10px;align-items:center;justify-content:space-between;
-      padding:8px 10px;border:1px solid var(--line);border-radius:12px;
-      margin:0 0 8px;background:rgba(0,0,0,.10)
-    }
-    .remItem:last-child{margin-bottom:0}
-    .remWhen{font-size:13px}
-    .remWhen small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
-
-    /* recurring presets UI */
-    .presetCard{
+    .kpi .box .t{font-size:12px;color:var(--muted);font-weight:800}
+    .kpi .box .v{margin-top:6px;font-size:18px;font-weight:900}
+    .footer{margin-top:14px;color:var(--muted);font-size:12px;text-align:center}
+    .errbar{
+      display:none;
       margin-top:12px;
-      border:1px solid var(--fieldLine);
-      border-radius:12px;
-      background:rgba(15,26,46,.35);
-      padding:10px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,107,139,.22);
+      background:rgba(255,107,139,.08);
+      color:var(--text);
+      font-size:12px;
+      line-height:1.35;
+      white-space:pre-wrap;
     }
-    .grid2{display:grid;grid-template-columns:1fr;gap:10px}
-    @media(min-width:720px){ .grid2{grid-template-columns:1fr 1fr} }
-
-    @media (max-width: 720px){
-      :root{ --pad: 12px; }
-      header{padding:12px}
-      .brand{min-width:0;flex:1}
-      .status{gap:8px}
-      #txtLast{display:none;}
-      .pill{padding:6px 9px}
-      .tabbtn{flex:1;justify-content:center}
-      .mini{min-height:44px}
-      .tablewrap{display:none}
-      .mobileSchedule{display:grid}
-      .kpi{grid-template-columns:repeat(2,1fr)}
-      .row{gap:8px}
-      .wactions .btn{flex:1}
-    }
-    @media (max-width: 420px){
-      .brand h1{font-size:15px}
-      .tabbtn{font-size:12px;padding:9px 10px}
-      .badgeNow{margin-left:6px}
-    }
+    .errbar.show{display:block}
   </style>
 
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.webmanifest">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Upratovací plánovač BD 642">
+  <script src="https://kit.fontawesome.com/a2e0e9a0f8.js" crossorigin="anonymous"></script>
 </head>
 
 <body>
-  <!-- LOGIN OVERLAY -->
-  <div class="overlay" id="loginOverlay" aria-hidden="false">
-    <div class="loginCard">
-      <div class="row">
-        <div class="brand" style="min-width:0">
-          <div class="logo"><i class="fa-solid fa-broom"></i></div>
-          <div style="min-width:0">
-            <h2>Prihlásenie</h2>
-            <div class="small">
-              Zadaj priezvisko alebo rodinu. Nezáleží na veľkosti písmen ani diakritike.
-            </div>
-          </div>
+  <div class="wrap">
+
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div class="title">
+          <h1>Upratovací Plánovač <span class="mono">BD 642</span></h1>
+          <div class="sub">Rozpis • Výmeny • Lokálne pripomienky • (voliteľne) Push</div>
         </div>
       </div>
 
-      <div class="loginGrid">
-        <div>
-          <label style="font-size:12px;color:var(--muted);display:block;margin:0 0 6px">Kód</label>
-          <input id="loginCode" placeholder="Zadaj priezvisko alebo rodinu" autocomplete="off" inputmode="text" />
-          <div class="tag bad err" id="loginErr"><i class="fa-solid fa-triangle-exclamation"></i><span id="loginErrTxt">Neplatný kód.</span></div>
+      <div class="hdrRight">
+        <div class="chip" id="chipUser">
+          <i class="fa-solid fa-user"></i>
+          <span>Rodina:</span>
+          <b id="meFamilyLabel">neprihlásený</b>
+        </div>
 
-          <div class="divider"></div>
+        <button class="btn primary icon" id="btnLogin" type="button">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          Prihlásiť
+        </button>
 
+        <button class="btn bad icon" id="btnLogout" type="button" style="display:none">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          Odhlásiť
+        </button>
+      </div>
+    </header>
+
+    <div id="errbar" class="errbar"></div>
+
+    <div class="grid">
+
+      <section class="card">
+        <div class="hd">
+          <div>
+            <h2>Rozpis upratovania</h2>
+            <div class="hint">Klikni <b>Nastaviť</b> na svojom týždni. <b>Výmena</b> otvorí žiadosť o výmenu.</div>
+          </div>
           <div class="row">
-            <button class="btn pri" id="loginBtn"><i class="fa-solid fa-right-to-bracket"></i> Prihlásiť</button>
-            <span class="spacer"></span>
+            <span class="badge" id="badgeWeek"><i class="fa-regular fa-calendar"></i> Týždeň: <b id="weekNo">-</b></span>
+            <span class="badge" id="badgeNow"><i class="fa-solid fa-bolt"></i> Aktuálne: <b id="nowFamily">-</b></span>
           </div>
         </div>
+
+        <div class="tabs">
+          <button class="tabbtn active" data-tab="tab-schedule" type="button"><i class="fa-solid fa-table"></i> Rozpis</button>
+          <button class="tabbtn" data-tab="tab-swaps" type="button"><i class="fa-solid fa-right-left"></i> Výmeny</button>
+          <button class="tabbtn" data-tab="tab-help" type="button"><i class="fa-solid fa-circle-info"></i> Pomoc</button>
+        </div>
+
+        <div class="tab active" id="tab-schedule">
+          <div class="note">
+            <b>Tip:</b> Ak sa ti niekedy zablokujú tlačidlá (neklikateľné), choď do <b>Nastavenia</b> a daj <b>Reset</b>.
+          </div>
+          <div class="sep"></div>
+
+          <div class="kpi">
+            <div class="box">
+              <div class="t">Najbližší začiatok</div>
+              <div class="v" id="kpiNext">-</div>
+              <div class="small muted" id="kpiNextSub">-</div>
+            </div>
+            <div class="box">
+              <div class="t">Moje nastavené pripomienky</div>
+              <div class="v" id="kpiMine">0</div>
+              <div class="small muted" id="kpiMineSub">-</div>
+            </div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="row space">
+            <div class="row">
+              <span class="badge"><i class="fa-solid fa-location-dot"></i> Lokalita: <b>BD 642</b></span>
+              <span class="badge"><i class="fa-solid fa-clock"></i> Časové pásmo: <b>Europe/Bratislava</b></span>
+            </div>
+            <div class="row">
+              <button class="btn mini icon" id="btnToday" type="button"><i class="fa-solid fa-crosshairs"></i> Dnes</button>
+              <button class="btn mini icon" id="btnExport" type="button"><i class="fa-solid fa-file-arrow-down"></i> Export</button>
+            </div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div id="scheduleDesktop"></div>
+          <div id="scheduleMobile" style="display:none"></div>
+        </div>
+
+        <div class="tab" id="tab-swaps">
+          <div class="note warn">
+            <b>Výmena:</b> Aktuálne sa používa jednoduchý režim – otvorí sa predvyplnená správa. (V ďalšej verzii sa doplní serverové schvaľovanie.)
+          </div>
+          <div class="sep"></div>
+
+          <div class="field">
+            <label>Predvyplnený text žiadosti o výmenu</label>
+            <textarea id="swapTemplate"></textarea>
+            <div class="row" style="justify-content:flex-end">
+              <button class="btn mini" id="btnCopySwap" type="button"><i class="fa-regular fa-copy"></i> Kopírovať</button>
+            </div>
+          </div>
+
+          <div class="sep"></div>
+          <div class="small muted">
+            Pozn.: V praxi si to pošlite cez skupinu / chat (WhatsApp, Messenger…). Do budúcna sa dá doplniť plný workflow cez Firebase.
+          </div>
+        </div>
+
+        <div class="tab" id="tab-help">
+          <div class="note">
+            <b>Prihlásenie:</b> vyberieš rodinu → rozpis sa prispôsobí → na svojom týždni klikneš <b>Nastaviť</b>.
+          </div>
+          <div class="sep"></div>
+          <div class="small">
+            <ul>
+              <li><b>Nastaviť</b> funguje iba pre prihlásenú rodinu na jej týždni.</li>
+              <li><b>Výmena</b> otvorí žiadosť o výmenu pre konkrétny týždeň.</li>
+              <li>Notifikácie v tejto HTML verzii sú <b>lokálne</b> (závisia od zariadenia a prehliadača).</li>
+              <li>Push notifikácie (Firebase) sú voliteľné – rozšírenie v ďalšom kroku.</li>
+            </ul>
+          </div>
+        </div>
+
+      </section>
+
+      <aside class="card">
+        <div class="hd">
+          <div>
+            <h2>Nastavenia</h2>
+            <div class="hint">Lokálne pripomienky + preferencie</div>
+          </div>
+          <span class="badge"><i class="fa-solid fa-gear"></i> v16</span>
+        </div>
+
+        <div class="bd">
+          <div class="field">
+            <label>Moja rodina (aktuálne)</label>
+            <div class="row space">
+              <div class="mono" id="meFamilyMono">—</div>
+              <button class="btn mini" id="btnChangeFamily" type="button"><i class="fa-solid fa-pen"></i> Zmeniť</button>
+            </div>
+            <div class="small muted">Ak nie si prihlásený, <b>Nastaviť</b> a personalizácia sa vypnú.</div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="two">
+            <div class="field">
+              <label>Predvolený deň pripomienky</label>
+              <select id="prefDay">
+                <option value="monday">Pondelok</option>
+                <option value="tuesday">Utorok</option>
+                <option value="wednesday">Streda</option>
+                <option value="thursday">Štvrtok</option>
+                <option value="friday">Piatok</option>
+                <option value="saturday">Sobota</option>
+                <option value="sunday">Nedeľa</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Predvolený čas</label>
+              <input type="time" id="prefTime" value="18:00" />
+            </div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="field">
+            <label>Pripomienky (lokálne) – pre môj týždeň</label>
+            <div class="small muted">Nastaví sa pre konkrétny týždeň. Uloží sa do localStorage pre tento prehliadač.</div>
+            <div id="remindersList" class="list" style="margin-top:10px"></div>
+
+            <div class="row" style="justify-content:flex-end;margin-top:8px">
+              <button class="btn mini good" id="btnEnablePush" type="button"><i class="fa-solid fa-bell"></i> Zapnúť Push</button>
+              <button class="btn mini" id="simulateSync" type="button"><i class="fa-solid fa-rotate"></i> Sync</button>
+              <button class="btn mini" id="resetApp" type="button" style="border-color:rgba(251,113,133,.35)"><i class="fa-solid fa-trash"></i> Reset</button>
+            </div>
+          </div>
+
+          <div class="sep"></div>
+
+          <div class="note bad" id="pushStateNote" style="display:none"></div>
+
+          <div class="footer">BD 642 • lokálna verzia (HTML)</div>
+        </div>
+      </aside>
+    </div>
+
+  </div>
+
+  <!-- LOGIN OVERLAY -->
+  <div class="overlay hidden" id="loginOverlay" aria-hidden="true">
+    <div class="modal">
+      <div class="mh">
+        <h3>Prihlásenie (výber rodiny)</h3>
+        <button class="btn mini" id="closeLogin" type="button"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="mb">
+        <div class="small muted">Vyber svoju rodinu. Uloží sa lokálne v tomto prehliadači.</div>
+        <div class="sep"></div>
+        <div class="list" id="familyPills"></div>
+
+        <div class="sep"></div>
+        <div class="note warn">
+          <b>Poznámka:</b> Tlačidlá <b>Nastaviť</b> budú fungovať iba na týždni tvojej rodiny.
+        </div>
+      </div>
+      <div class="mf">
+        <button class="btn" id="btnDemo" type="button"><i class="fa-solid fa-eye"></i> Demo</button>
+        <button class="btn primary" id="btnConfirmFamily" type="button" disabled><i class="fa-solid fa-check"></i> Potvrdiť</button>
       </div>
     </div>
   </div>
 
   <!-- REMINDERS OVERLAY -->
   <div class="overlay hidden" id="remOverlay" aria-hidden="true">
-    <div class="remCard">
-      <div class="row">
-        <div style="min-width:0">
-          <h2 style="margin:0">Upozornenia</h2>
-          <div class="small" id="remTitle">—</div>
-          <div class="small" style="margin-top:6px">
-            Lokálne notifikácie fungujú spoľahlivo, keď je stránka (alebo PWA) otvorená. Pre push notifikácie použi tlačidlo <strong>Zapnúť push</strong> v Nastaveniach (podporované len v niektorých prehliadačoch, napr. Chrome na Androide).
-          </div>
-        </div>
-        <span class="spacer"></span>
-        <button class="btn mini" id="remClose"><i class="fa-solid fa-xmark"></i></button>
+    <div class="modal">
+      <div class="mh">
+        <h3>Nastaviť pripomienky</h3>
+        <button class="btn mini" id="closeRem" type="button"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <div class="divider"></div>
+      <div class="mb">
+        <div class="note" id="remTitleNote"></div>
+        <div class="sep"></div>
 
-      <!-- ONE-OFF -->
-      <div class="row">
-        <div style="flex:1;min-width:240px">
-          <label style="font-size:12px;color:var(--muted);display:block;margin:0 0 6px">Jednorazové upozornenie (dátum a čas)</label>
-          <input type="datetime-local" id="remDt" />
-          <div class="small" id="remHint" style="margin-top:6px">—</div>
-        </div>
-        <div style="flex:0 0 auto;align-self:end">
-          <button class="btn pri" id="remAdd"><i class="fa-solid fa-plus"></i> Pridať</button>
-        </div>
-      </div>
-
-      <!-- RECURRING PRESETS -->
-      <div class="presetCard">
-        <div class="row">
-          <div style="min-width:0">
-            <div style="font-weight:900">Trvalé nastavenie (na všetky moje týždne)</div>
-            <div class="small">Vytvorí upozornenia pre všetky obdobia, keď budeš na rade. Nastavenie sa dá kedykoľvek zmazať.</div>
-          </div>
-        </div>
-
-        <div class="grid2" style="margin-top:10px">
-          <div>
-            <label style="font-size:12px;color:var(--muted);display:block;margin:0 0 6px">Deň v týždni</label>
-            <select id="presetDow">
-              <option value="1">Pondelok</option>
-              <option value="2">Utorok</option>
-              <option value="3">Streda</option>
-              <option value="4">Štvrtok</option>
-              <option value="5">Piatok</option>
-              <option value="6">Sobota</option>
-              <option value="0">Nedeľa</option>
+        <div class="two">
+          <div class="field">
+            <label>Deň pripomienky</label>
+            <select id="remDay">
+              <option value="monday">Pondelok</option>
+              <option value="tuesday">Utorok</option>
+              <option value="wednesday">Streda</option>
+              <option value="thursday">Štvrtok</option>
+              <option value="friday">Piatok</option>
+              <option value="saturday">Sobota</option>
+              <option value="sunday">Nedeľa</option>
             </select>
           </div>
-
-          <div>
-            <label style="font-size:12px;color:var(--muted);display:block;margin:0 0 6px">Čas</label>
-            <input type="time" id="presetTime" value="18:00" />
+          <div class="field">
+            <label>Čas</label>
+            <input type="time" id="remTime" value="18:00" />
           </div>
         </div>
 
-        <div class="row" style="margin-top:10px">
-          <button class="btn pri" id="presetApply"><i class="fa-solid fa-wand-magic-sparkles"></i> Použiť na všetky moje týždne</button>
-          <button class="btn" id="presetClear" style="border-color:rgba(251,113,133,.35)"><i class="fa-solid fa-trash"></i> Zmazať trvalé nastavenie</button>
-          <span class="spacer"></span>
-          <span class="tag" id="presetState"><i class="fa-regular fa-bookmark"></i> Trvalé: —</span>
+        <div class="sep"></div>
+
+        <div class="field">
+          <label>Text pripomienky</label>
+          <input id="remText" placeholder="Napr. Upratať schody + vchod" />
+          <div class="small muted">Bude zobrazené ako lokálne upozornenie (ak to prehliadač dovolí).</div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="note warn small">
+          Ak pripomienky nejdú, skontroluj povolenia notifikácií pre túto stránku v prehliadači.
         </div>
       </div>
 
-      <div class="remList" id="remList"></div>
-
-      <div class="row" style="margin-top:10px">
-        <span class="tag" id="remCount"><i class="fa-regular fa-bell"></i> 0 upozornení</span>
-        <span class="spacer"></span>
-        <button class="btn" id="remClear" title="Zmaže všetky upozornenia pre tento týždeň" style="border-color:rgba(251,113,133,.35)"><i class="fa-solid fa-trash"></i> Vymazať tento týždeň</button>
+      <div class="mf">
+        <button class="btn bad" id="btnDeleteRem" type="button"><i class="fa-solid fa-trash"></i> Zmazať</button>
+        <button class="btn" id="btnTestRem" type="button"><i class="fa-solid fa-flask"></i> Test</button>
+        <button class="btn primary" id="btnSaveRem" type="button"><i class="fa-solid fa-save"></i> Uložiť</button>
       </div>
     </div>
   </div>
 
-  <div class="app">
-    <header>
-      <div class="top">
-        <div class="brand">
-          <div class="logo"><i class="fa-solid fa-broom"></i></div>
-          <div style="min-width:0">
-            <h1>Upratovací plánovač BD 642</h1>
-            <div class="sub" id="subLine"></div>
-          </div>
-        </div>
-        <div class="status">
-          <div class="pill" id="pillFamily"><span class="dot ok"></span><span id="txtFamily">Prihlásený: —</span></div>
-          <div class="pill" id="pillRole"><span class="dot sync"></span><span id="txtRole">Režim: Používateľ</span></div>
-          <div class="pill"><span class="dot ok" id="dotOnline"></span><span id="txtOnline">Online</span></div>
-          <div class="pill"><span class="dot sync" id="dotSync"></span><span id="txtSync">Sync: pripravené</span></div>
-          <div class="pill"><i class="fa-regular fa-clock"></i><span id="txtLast">Posl. sync: —</span></div>
-          <button class="btn mini" id="btnLogout" title="Odhlásiť"><i class="fa-solid fa-right-from-bracket"></i></button>
-        </div>
-      </div>
+  <script>
+    (function(){
+      "use strict";
 
-      <div class="tabs" role="tablist" aria-label="Navigácia">
-        <button class="tabbtn" role="tab" aria-selected="true" data-tab="schedule"><i class="fa-regular fa-calendar"></i> Harmonogram</button>
-        <button class="tabbtn" role="tab" aria-selected="false" data-tab="swaps"><i class="fa-solid fa-right-left"></i> Výmeny</button>
-        <button class="tabbtn" role="tab" aria-selected="false" data-tab="chat"><i class="fa-regular fa-comments"></i> Chat</button>
-        <button class="tabbtn" role="tab" aria-selected="false" data-tab="settings"><i class="fa-solid fa-gear"></i> Nastavenia</button>
-      </div>
-    </header>
+      // ====== KONFIG (lokálna) ======
+      const TZ = "Europe/Bratislava";
+      const families = [
+        "Cuchorovci",
+        "Haluškovci",
+        "Jendroľovci",
+        "Kikovi",
+        "Kubíkovci",
+        "Makuchovci",
+        "Michalkovci",
+        "Pavlíkovci"
+      ];
 
-    <main>
-      <!-- Harmonogram -->
-      <section class="card" id="tab-schedule">
-        <div class="row">
-          <div style="min-width:0">
-            <h2>Harmonogram <span class="badgeNow" id="badgeNow" style="display:none"><i class="fa-solid fa-location-dot"></i> Aktuálny</span></h2>
-          </div>
-          <div class="spacer"></div>
-          <button class="btn mini" id="btnMine"><i class="fa-solid fa-filter"></i> Len moje</button>
-          <button class="btn mini" id="btnAll"><i class="fa-solid fa-list"></i> Všetky</button>
-        </div>
+      // Rozpis (pondelok - nedeľa v týždni), ukážka - uprav podľa reality:
+      // Každý blok = týždeň upratovania danej rodiny
+      // id: poradie, family: rodina, from/to: ISO dátum (YYYY-MM-DD)
+      // Pozn.: Ak chceš "done", "swapRequested", dá sa doplniť neskôr.
+      const blocks = buildScheduleFromStart("2026-01-05", 60); // generuje 60 týždňov od daného pondelka
 
-        <div class="kpi" style="margin-top:10px">
-          <div class="k"><div class="v" id="kpiNow">—</div><div class="l">Aktuálny týždeň</div></div>
-          <div class="k"><div class="v" id="kpiFamily">—</div><div class="l">Kto upratuje</div></div>
-          <div class="k"><div class="v" id="kpiSwaps">0</div><div class="l">Aktívne výmeny</div></div>
-          <div class="k"><div class="v" id="kpiUnread">0</div><div class="l">Nové správy</div></div>
-        </div>
+      // ====== PERSISTENCIA ======
+      const PREFS_KEY = "bd642_prefs_v16";
+      const REM_KEY = "bd642_reminders_v16";        // objekt { [blockId]: {day,time,text,enabled} }
+      const PRESET_KEY = "bd642_selectedFamily_v16";
+      const PUSH_STATE_KEY = "bd642_push_state_v16";
+      const PUSH_TOKEN_KEY = "bd642_push_token_v16";
 
-        <!-- Desktop -->
-        <div class="tablewrap" style="margin-top:12px">
-          <table>
-            <thead>
-              <tr>
-                <th>Týždeň (Po–Ne)</th>
-                <th>Rodina / osoba</th>
-                <th>Upozornenia</th>
-                <th>Poznámka</th>
-                <th>Akcia</th>
-              </tr>
-            </thead>
-            <tbody id="scheduleBody"></tbody>
-          </table>
-        </div>
+      // ====== STATE ======
+      let role = "user";         // "user" | "demo"
+      let meFamily = null;       // string | null
+      let pendingFamily = null;  // temp výber v login overlay
+      let currentBlock = null;   // block kde je dnes (ak existuje)
+      let editingBlockId = null; // pre reminders overlay
 
-        <!-- Mobile -->
-        <div class="mobileSchedule" id="scheduleMobile"></div>
-      </section>
-
-      <!-- Výmeny -->
-      <section class="card hidden" id="tab-swaps">
-        <h2>Výmeny termínov</h2>
-
-        <div class="row" style="margin-top:10px">
-          <span class="tag"><i class="fa-solid fa-user"></i> Prihlásený: <strong id="swapMe" style="margin-left:6px">—</strong></span>
-        </div>
-
-        <div style="margin-top:10px;display:grid;grid-template-columns:1fr;gap:10px">
-          <div class="row">
-            <div style="flex:1;min-width:220px">
-              <label style="font-size:12px;color:var(--muted);display:block;margin:0 0 6px">Môj pôvodný týždeň</label>
-              <select id="swapFrom"></select>
-            </div>
-            <div style="flex:1;min-width:220px">
-              <label style="font-size:12px;color:var(--muted);display:block;margin:0 0 6px">Chcem vymeniť za</label>
-              <select id="swapTo"></select>
-            </div>
-          </div>
-
-          <div>
-            <label style="font-size:12px;color:var(--muted);display:block;margin:0 0 6px">Správa (voliteľné)</label>
-            <input id="swapMsg" placeholder="Napíš krátku správu" />
-          </div>
-
-          <div class="row">
-            <button class="btn pri" id="swapCreate"><i class="fa-solid fa-paper-plane"></i> Odoslať žiadosť</button>
-          </div>
-        </div>
-
-        <div class="tablewrap" style="margin-top:12px">
-          <table>
-            <thead>
-              <tr>
-                <th>Žiadateľ</th>
-                <th>Z</th>
-                <th>Na</th>
-                <th>Stav</th>
-                <th>Akcia</th>
-              </tr>
-            </thead>
-            <tbody id="swapsBody"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- Chat -->
-      <section class="card hidden" id="tab-chat">
-        <div class="row">
-          <div style="min-width:0">
-            <h2>Chat</h2>
-          </div>
-          <div class="spacer"></div>
-          <span class="tag"><i class="fa-solid fa-paperclip"></i> Prílohy</span>
-        </div>
-
-        <div class="card" style="margin-top:10px;padding:10px;background:rgba(15,26,46,.55);border-color:var(--fieldLine)">
-          <div class="row" style="margin-bottom:8px">
-            <span class="tag"><i class="fa-solid fa-user"></i> Píše: <strong id="chatMe" style="margin-left:6px">—</strong></span>
-            <span class="spacer"></span>
-            <button class="btn mini" id="chatMarkRead"><i class="fa-regular fa-circle-check"></i> Prečítané</button>
-          </div>
-
-          <div class="chatBox" id="msgs"></div>
-
-          <div class="row" style="margin-top:10px">
-            <input id="chatFile" type="file" style="flex:1;min-width:220px"/>
-          </div>
-
-          <div style="margin-top:10px">
-            <textarea id="chatText" placeholder="Napíš správu…"></textarea>
-          </div>
-
-          <div class="row" style="margin-top:10px">
-            <button class="btn pri" id="chatSend"><i class="fa-regular fa-paper-plane"></i> Odoslať</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Nastavenia -->
-      <section class="card hidden" id="tab-settings">
-        <div class="row">
-          <div style="min-width:0">
-            <h2>Nastavenia</h2>
-          </div>
-          <span class="spacer"></span>
-          <span class="tag"><i class="fa-solid fa-user"></i> Prihlásený: <strong id="setMe" style="margin-left:6px">—</strong></span>
-        </div>
-
-        <div class="row" style="margin-top:10px">
-          <div style="flex:1;min-width:220px">
-            <label style="font-size:12px;color:var(--muted);display:block;margin:0 0 6px">Notifikácie (lokálne v prehliadači)</label>
-            <select id="notifyEnabled">
-              <option value="off" selected>Vypnuté</option>
-              <option value="on">Zapnuté</option>
-            </select>
-          </div>
-
-          <div style="flex:0 0 auto;align-self:end">
-            <button class="btn pri" id="savePrefs"><i class="fa-regular fa-floppy-disk"></i> Uložiť</button>
-          </div>
-        </div>
-
-        <!-- PUSH (Firebase Cloud Messaging) -->
-        <div class="card" style="margin-top:12px;padding:12px;background:rgba(15,26,46,.55);border-color:var(--fieldLine)">
-          <div class="row">
-            <div style="min-width:0">
-              <div style="font-weight:900">Push notifikácie (Firebase)</div>
-            </div>
-            <span class="spacer"></span>
-            <button class="btn pri" id="btnPushEnable" type="button">
-              <i class="fa-solid fa-bell"></i> <span id="btnPushText">Zapnúť push</span>
-            </button>
-          </div>
-
-          <div class="row" style="margin-top:10px">
-            <span class="tag" id="pushState"><i class="fa-regular fa-bell"></i> Push: —</span>
-            <span class="tag" id="pushTokenShort"><i class="fa-solid fa-key"></i> Token: —</span>
-          </div>
-
-          <div class="small" style="margin-top:8px">
-            Pozn.: Prehliadač sa ťa najskôr musí opýtať na povolenie. Ak push nie je podporovaný alebo je zakázaný, zobrazí sa hlásenie a tlačidlo ostane neaktívne.
-          </div>
-        </div>
-        <!-- /PUSH -->
-
-        <!-- PWA INŠTALÁCIA -->
-        <div class="card" id="pwaInstallCard" style="margin-top:12px;padding:12px;background:rgba(15,26,46,.55);border-color:var(--fieldLine)">
-          <div class="row">
-            <div style="min-width:0">
-              <div style="font-weight:900">Aplikácia (PWA)</div>
-              <div class="small" id="pwaInstallHint" style="margin-top:6px">—</div>
-            </div>
-            <span class="spacer"></span>
-            <button class="btn pri" id="btnInstallApp" type="button" disabled>
-              <i class="fa-solid fa-download"></i> <span id="btnInstallText">Nainštalovať</span>
-            </button>
-          </div>
-          <div class="small" style="margin-top:10px">
-            <strong>iOS (iPhone/iPad):</strong> v Safari otvor stránku → <em>Zdieľať</em> → <em>Pridať na plochu</em>.
-          </div>
-        </div>
-        <!-- /PWA INŠTALÁCIA -->
-
-        <div class="row" style="margin-top:10px">
-          <span class="tag ok" id="prefsSaved"><i class="fa-regular fa-circle"></i> Neuložené</span>
-          <span class="tag" id="notifyState"><i class="fa-regular fa-bell"></i> Notifikácie: —</span>
-          <span class="tag" id="nextReminder"><i class="fa-regular fa-clock"></i> Najbližšie upozornenie: —</span>
-          <span class="spacer"></span>
-          <button class="btn mini" id="toggleOffline"><i class="fa-solid fa-wifi"></i> Online/Offline</button>
-          <button class="btn mini" id="simulateSync"><i class="fa-solid fa-rotate"></i> Sync</button>
-        </div>
-
-        <div class="row" style="margin-top:10px">
-          <div class="small" style="min-width:0">
-            Kalendár harmonogramu si môžeš pridať do svojho Google/Outlook kalendára.
-          </div>
-          <span class="spacer"></span>
-          <a href="./kalendar.ics" class="btn mini" id="btnIcs" download>
-            <i class="fa-regular fa-calendar"></i> Stiahnuť kalendár (.ics)
-          </a>
-        </div>
-
-        <div class="small" style="margin-top:10px">
-          Upozornenia nastavíš v <strong>Harmonograme</strong> pri konkrétnom týždni. Trvalé nastavenie je v dialógu „Upozornenia“.
-        </div>
-      </section>
-    </main>
-  </div>
-
-<script>
-(function(){
-  const $ = (s)=>document.querySelector(s);
-  const $$ = (s)=>Array.from(document.querySelectorAll(s));
-  const pad = (n)=>String(n).padStart(2,"0");
-  const d0 = (iso)=>new Date(iso+"T00:00:00");
-  const isoDate = (dt)=>`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
-  const nowIso = ()=>new Date().toISOString();
-  const fmtDMY = (iso)=>{ const x=d0(iso); return `${pad(x.getDate())}.${pad(x.getMonth()+1)}.${x.getFullYear()}`; };
-  const fmtDMYHM = (dt)=>`${pad(dt.getDate())}.${pad(dt.getMonth()+1)}.${dt.getFullYear()} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
-
-  function escapeHtml(s){ return (s||"").replace(/[&<>'"]/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;" }[c])); }
-  function linkify(s){ return s.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'); }
-
-  function norm(s){
-    return (s||"")
-      .trim()
-      .toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-      .replace(/[^a-z]/g,"");
-  }
-
-  const families = ["Cuchorovci","Markusekovci","Jarosovci","Vraniak"];
-
-  const familyAliases = {
-    "Cuchorovci": ["cuchor","cuchorov","cuchorova","cuchorovci","cuchorovcov","cuchorovi"],
-    "Markusekovci": ["markus","markusek","markusekov","markusekova","markusekovci","markusov","markusova","markusovci","markusovi"],
-    "Jarosovci": ["jaros","jarosov","jarosova","jarosovci","jarosovcov","jarosovi"],
-    "Vraniak": ["vraniak","vraniakova","vraniakovi","vranak","vranakova","vranakovi"]
-  };
-
-  const aliasToFamily = new Map();
-  Object.entries(familyAliases).forEach(([fam, list])=>{
-    list.forEach(a=>aliasToFamily.set(norm(a), fam));
-    aliasToFamily.set(norm(fam), fam);
-  });
-
-  function familyFromInput(raw){
-    const key = norm(raw);
-    if(!key) return null;
-    if (aliasToFamily.has(key)) return aliasToFamily.get(key);
-
-    const suffixes = ["ovci","ovcov","ovi","ova","ove","ov","ci","a"];
-    for(const suf of suffixes){
-      if(key.endsWith(suf) && key.length > suf.length+2){
-        const base = key.slice(0, -suf.length);
-        if (aliasToFamily.has(base)) return aliasToFamily.get(base);
-      }
-    }
-    return null;
-  }
-
-  const displayName = {
-    "Cuchorovci":"Čuchorovci",
-    "Markusekovci":"Markusekovci",
-    "Jarosovci":"Jarošovci",
-    "Vraniak":"Vraniak"
-  };
-
-  let meFamily = null;
-  let role = "user";
-  let showMineOnly = false;
-
-  /* TRVALÝ STAV PUSH (nezávislý od prihlásenia) */
-  const PUSH_STATE_KEY = "bd642_push_state_v1";
-  const PUSH_TOKEN_KEY = "bd642_push_token_v1";
-
-  /* PUSH + SERVER SCHEDULING (Cloud Functions) */
-  const FUNCTIONS_BASE = "https://europe-west1-bd-642-26-upratovanie-d2851.cloudfunctions.net";
-  const ALLOWED_FAMILIES = new Set(families);
-
-  function getStoredPushToken(){
-    try{
-      const st = localStorage.getItem(PUSH_STATE_KEY);
-      const tok = localStorage.getItem(PUSH_TOKEN_KEY);
-      if(st === "OK" && tok) return String(tok);
-    }catch(_){}
-    return null;
-  }
-
-  function isPushReallyEnabled(){
-    return !!getStoredPushToken();
-  }
-
-  function buildClientKey(kind, blockId, id){
-    const fam = meFamily ? norm(meFamily) : "nofam";
-    return `bd642-${kind}-${fam}-${String(blockId)}-${String(id)}`;
-  }
-
-  async function cfPost(path, payload){
-    const url = FUNCTIONS_BASE + path;
-    const r = await fetch(url, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(payload)
-    });
-    let data = null;
-    try{ data = await r.json(); }catch(_){}
-    return { ok:r.ok, status:r.status, data };
-  }
-
-  async function queueServerPush(clientKey, sendAtDt, title, body, url){
-    if(role==="demo" || !online || !meFamily) return { ok:false, skipped:true, reason:"disabled" };
-    if(!isPushReallyEnabled()) return { ok:false, skipped:true, reason:"no-token" };
-
-    const token = getStoredPushToken();
-    if(!token) return { ok:false, skipped:true, reason:"no-token" };
-
-    if(!ALLOWED_FAMILIES.has(meFamily)) return { ok:false, skipped:true, reason:"bad-family" };
-
-    const payload = {
-      family: meFamily,
-      token,
-      clientKey,
-      sendAtIso: sendAtDt.toISOString(),
-      title: title || "BD 642 – Upratovanie",
-      body: body || "",
-      url: url || "./"
-    };
-
-    return await cfPost("/queueReminderPublic", payload);
-  }
-
-  async function cancelServerPush(clientKey){
-    if(role==="demo" || !online || !meFamily) return { ok:false, skipped:true, reason:"disabled" };
-    if(!isPushReallyEnabled()) return { ok:false, skipped:true, reason:"no-token" };
-
-    const token = getStoredPushToken();
-    if(!token) return { ok:false, skipped:true, reason:"no-token" };
-
-    const payload = { family: meFamily, token, clientKey };
-    return await cfPost("/cancelReminderPublic", payload);
-  }
-
-  async function syncAllServerPush(){
-    if(role==="demo" || !online || !meFamily) return;
-    if(!isPushReallyEnabled()) return;
-
-    const now = new Date();
-
-    const f = reminders[meFamily] || {};
-    for(const [bid, list] of Object.entries(f)){
-      if(!Array.isArray(list)) continue;
-      list.forEach(async (r)=>{
-        const dt = new Date(r.dtISO);
-        if(isNaN(dt.getTime()) || dt <= now) return;
-        const block = blocks.find(x=>x.id===Number(bid));
-        if(!block) return;
-        const ck = buildClientKey("one", block.id, r.id);
-        const title = "BD 642 – Upratovanie";
-        const body = `(${displayName[meFamily]}) ${fmtDMY(block.start)} – ${fmtDMY(block.end)}.`;
-        await queueServerPush(ck, dt, title, body, "./");
-      });
-    }
-
-    const ps = getPresetsFor(meFamily);
-    if(ps.length){
-      blocks.forEach(b=>{
-        if(b.family!==meFamily) return;
-        ps.forEach(p=>{
-          const dt = dtInBlockForDowTime(b, p.dow, p.time);
-          if(!dt || dt <= now) return;
-          const ck = buildClientKey("pre", b.id, p.id);
-          const title = "BD 642 – Upratovanie";
-          const body = `(${displayName[meFamily]}) ${fmtDMY(b.start)} – ${fmtDMY(b.end)}.`;
-          queueServerPush(ck, dt, title, body, "./");
-        });
-      });
-    }
-  }
-
-  const BASE_START = "2026-01-05";
-
-  let blocks = [];
-  let swaps = [];
-  let chat = [];
-  let unread = 0;
-  let online = true;
-
-  const DEFAULT_PREFS = { notifyEnabled: "off" };
-  let prefs = {...DEFAULT_PREFS};
-  const PREFS_KEY = "bd642_prefs_v15";
-
-  const REM_KEY = "bd642_reminders_v15";
-  let reminders = {};
-
-  const PRESET_KEY = "bd642_presets_v15";
-  let presets = {};
-
-  function loadPrefs(){
-    try{
-      const raw = localStorage.getItem(PREFS_KEY);
-      if(!raw) return;
-      const x = JSON.parse(raw);
-      prefs = {
-        notifyEnabled: (x.notifyEnabled==="on" || x.notifyEnabled==="off") ? x.notifyEnabled : DEFAULT_PREFS.notifyEnabled
+      // ====== HELPERS ======
+      const $ = (q)=>document.querySelector(q);
+      const $$ = (q)=>Array.from(document.querySelectorAll(q));
+      const pad2 = (n)=>String(n).padStart(2,"0");
+      const esc = (s)=>String(s||"").replace(/[&<>"']/g,(m)=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
+      const showErr = (msg, err)=>{
+        const box = $("#errbar");
+        const line = err ? ("\n\n" + (err && err.stack ? err.stack : String(err))) : "";
+        box.textContent = String(msg||"Chyba") + line;
+        box.classList.add("show");
       };
-    }catch(_){}
-  }
-  function savePrefs(){ localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); }
+      const hideErr = ()=>{ $("#errbar").classList.remove("show"); $("#errbar").textContent=""; };
 
-  function loadReminders(){
-    try{
-      const raw = localStorage.getItem(REM_KEY);
-      reminders = raw ? JSON.parse(raw) : {};
-      if(!reminders || typeof reminders!=="object") reminders = {};
-    }catch(_){ reminders = {}; }
-  }
-  function saveReminders(){ localStorage.setItem(REM_KEY, JSON.stringify(reminders)); }
-
-  function loadPresets(){
-    try{
-      const raw = localStorage.getItem(PRESET_KEY);
-      presets = raw ? JSON.parse(raw) : {};
-      if(!presets || typeof presets!=="object") presets = {};
-    }catch(_){ presets = {}; }
-  }
-  function savePresets(){ localStorage.setItem(PRESET_KEY, JSON.stringify(presets)); }
-
-  function initData(){
-    swaps = [];
-    chat = [];
-  }
-
-  function sortBlocks(){ blocks.sort((a,b)=>d0(a.start)-d0(b.start)); }
-  function nextId(){ return Math.max(0,...blocks.map(b=>b.id)) + 1; }
-
-  function generateWeeklyBlocks(fromIso, toIso){
-    const start = d0(fromIso);
-    const target = d0(toIso);
-
-    let cursorStart, cursorFamIndex;
-    if (blocks.length){
-      const last = blocks[blocks.length-1];
-      cursorStart = new Date(d0(last.end).getTime() + 24*3600*1000);
-      const lastIdx = families.indexOf(last.family);
-      cursorFamIndex = (lastIdx + 1) % families.length;
-    } else {
-      cursorStart = start;
-      cursorFamIndex = 0;
-    }
-    if (cursorStart < start) cursorStart = start;
-
-    while(true){
-      const end = new Date(cursorStart.getTime() + 6*24*3600*1000);
-      blocks.push({ id: nextId(), start: isoDate(cursorStart), end: isoDate(end), family: families[cursorFamIndex], note:"" });
-      cursorFamIndex = (cursorFamIndex + 1) % families.length;
-      if (end >= target) break;
-      cursorStart = new Date(end.getTime() + 24*3600*1000);
-    }
-    sortBlocks();
-  }
-
-  function ensureCoverage(){
-    const end2026 = "2026-12-31";
-    const today = new Date();
-    const plus6m = new Date(today.getFullYear(), today.getMonth()+6, today.getDate());
-    let target = d0(end2026);
-    if (plus6m > target) target = plus6m;
-
-    if (!blocks.length){
-      generateWeeklyBlocks(BASE_START, isoDate(target));
-      return;
-    }
-
-    const last = blocks[blocks.length-1];
-    const lastEnd = d0(last.end);
-    if (lastEnd < target){
-      generateWeeklyBlocks(BASE_START, isoDate(target));
-    }
-  }
-
-  function findCurrentBlock(){
-    const t = new Date();
-    const today = new Date(t.getFullYear(), t.getMonth(), t.getDate());
-    return blocks.find(b=> today>=d0(b.start) && today<=d0(b.end)) || null;
-  }
-
-  function getRemFor(fam, blockId){
-    if(!fam) return [];
-    const f = reminders[fam] || {};
-    const list = f[String(blockId)] || [];
-    return Array.isArray(list) ? list : [];
-  }
-  function setRemFor(fam, blockId, list){
-    if(!fam) return;
-    if(!reminders[fam]) reminders[fam] = {};
-    reminders[fam][String(blockId)] = list;
-    saveReminders();
-  }
-  function countRemForBlock(blockId){
-    if(!meFamily) return 0;
-    return getRemFor(meFamily, blockId).length;
-  }
-
-  function getPresetsFor(fam){
-    const list = (presets && fam && presets[fam]) ? presets[fam] : [];
-    return Array.isArray(list) ? list : [];
-  }
-  function setPresetsFor(fam, list){
-    if(!fam) return;
-    if(!presets) presets = {};
-    presets[fam] = list;
-    savePresets();
-  }
-
-  function dowToLabel(dow){
-    return ["Nedeľa","Pondelok","Utorok","Streda","Štvrtok","Piatok","Sobota"][dow] || "—";
-  }
-  function parseHHMM(hhmm){
-    const m = String(hhmm||"").match(/^(\d{2}):(\d{2})$/);
-    if(!m) return null;
-    const hh = Number(m[1]), mm = Number(m[2]);
-    if(hh<0||hh>23||mm<0||mm>59) return null;
-    return {hh,mm};
-  }
-  function dtInBlockForDowTime(block, dow, timeHHMM){
-    const t = parseHHMM(timeHHMM);
-    if(!t) return null;
-
-    const start = d0(block.start);
-    const end = d0(block.end);
-
-    let cur = new Date(start);
-    while(cur <= end && cur.getDay() !== dow){
-      cur = new Date(cur.getTime() + 24*3600*1000);
-    }
-    if(cur > end) return null;
-
-    cur.setHours(t.hh, t.mm, 0, 0);
-    return cur;
-  }
-
-  function countPresetForBlock(blockId){
-    if(!meFamily) return 0;
-    const b = blocks.find(x=>x.id===blockId);
-    if(!b) return 0;
-    if(b.family!==meFamily) return 0;
-    const ps = getPresetsFor(meFamily);
-    let c = 0;
-    ps.forEach(p=>{
-      const dt = dtInBlockForDowTime(b, p.dow, p.time);
-      if(dt) c++;
-    });
-    return c;
-  }
-  function countAllForBlock(blockId){
-    return countRemForBlock(blockId) + countPresetForBlock(blockId);
-  }
-
-  const tabs = ["schedule","swaps","chat","settings"];
-  function showTab(key){
-    tabs.forEach(k=>{ $("#tab-"+k).classList.toggle("hidden", k!==key); });
-    $$(".tabbtn").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===key ? "true" : "false"));
-    if (window.matchMedia("(max-width: 720px)").matches){
-      window.scrollTo({top:0,behavior:"smooth"});
-    }
-  }
-  $$(".tabbtn").forEach(b=>b.addEventListener("click", ()=>showTab(b.dataset.tab)));
-
-  function setHeaderState(){
-    const meTxt = meFamily ? displayName[meFamily] : "—";
-    $("#txtFamily").textContent = `Prihlásený: ${meTxt}`;
-    $("#swapMe").textContent = meTxt;
-    $("#chatMe").textContent = meTxt;
-    $("#setMe").textContent = meTxt;
-
-    $("#txtRole").textContent = role==="demo" ? "Režim: Demo" : "Režim: Používateľ";
-    $("#pillRole .dot").className = "dot " + (role==="demo" ? "sync" : "ok");
-
-    $("#dotOnline").className = "dot " + (online ? "ok" : "off");
-    $("#txtOnline").textContent = online ? "Online" : "Offline";
-  }
-
-  function renderScheduleDesktop(list, cur){
-    const tb = $("#scheduleBody");
-    tb.innerHTML = "";
-    list.forEach(b=>{
-      const tr = document.createElement("tr");
-      if (cur && b.id === cur.id) tr.classList.add("current");
-
-      const note = b.note ? escapeHtml(b.note) : "—";
-      const total = (meFamily && b.family===meFamily) ? countAllForBlock(b.id) : 0;
-      const totalTxt = (meFamily && b.family===meFamily) ? `${total}×` : "—";
-      const remBtnDisabled = (role==="demo" || !meFamily || b.family!==meFamily) ? "disabled" : "";
-
-      tr.innerHTML = `
-        <td>
-          <strong>${fmtDMY(b.start)} – ${fmtDMY(b.end)}</strong>
-          ${cur && b.id===cur.id ? '<span class="badgeNow"><i class="fa-solid fa-location-dot"></i> Sme tu</span>' : ''}
-        </td>
-        <td><strong>${escapeHtml(displayName[b.family] || b.family)}</strong></td>
-        <td>
-          <div class="row" style="gap:8px">
-            <span class="tag"><i class="fa-regular fa-bell"></i> ${totalTxt}</span>
-            <button class="btn mini" data-rem="${b.id}" ${remBtnDisabled}><i class="fa-solid fa-sliders"></i> Nastaviť</button>
-          </div>
-        </td>
-        <td>${note}</td>
-        <td>
-          <button class="btn mini" data-swap="${b.id}" ${role==="demo" ? "disabled" : ""}><i class="fa-solid fa-right-left"></i> Výmena</button>
-        </td>`;
-      tb.appendChild(tr);
-    });
-  }
-
-  function renderScheduleMobile(list, cur){
-    const wrap = $("#scheduleMobile");
-    wrap.innerHTML = "";
-    list.forEach(b=>{
-      const el = document.createElement("div");
-      el.className = "wcard";
-      if (cur && b.id === cur.id){
-        el.style.borderColor = "rgba(34,211,238,.45)";
-        el.style.background = "rgba(34,211,238,.10)";
+      function parseISO(d){ // YYYY-MM-DD => Date
+        const [y,m,dd] = String(d).split("-").map(Number);
+        return new Date(Date.UTC(y, m-1, dd, 0,0,0));
       }
-      const note = b.note ? escapeHtml(b.note) : "—";
-      const total = (meFamily && b.family===meFamily) ? countAllForBlock(b.id) : 0;
-      const remBtnDisabled = (role==="demo" || !meFamily || b.family!==meFamily) ? "disabled" : "";
-
-      el.innerHTML = `
-        <div class="whead">
-          <div class="wleft">
-            <div class="wweek">${fmtDMY(b.start)} – ${fmtDMY(b.end)} ${cur && b.id===cur.id ? '<span class="badgeNow" style="margin-left:6px"><i class="fa-solid fa-location-dot"></i> Aktuálny</span>' : ''}</div>
-            <div class="wfam"><i class="fa-solid fa-user"></i> ${escapeHtml(displayName[b.family] || b.family)}</div>
-            <div class="wnote"><i class="fa-regular fa-note-sticky"></i> ${note}</div>
-          </div>
-        </div>
-        <div class="wactions">
-          <button class="btn mini" data-rem="${b.id}" ${remBtnDisabled}><i class="fa-regular fa-bell"></i> Upozornenia (${meFamily && b.family===meFamily ? total : "—"})</button>
-          <button class="btn mini" data-swap="${b.id}" ${role==="demo" ? "disabled" : ""}><i class="fa-solid fa-right-left"></i> Výmena</button>
-        </div>
-      `;
-      wrap.appendChild(el);
-    });
-  }
-
-  function renderSchedule(){
-    const cur = findCurrentBlock();
-
-    if (cur){
-      $("#badgeNow").style.display = "inline-flex";
-      $("#kpiNow").textContent = `${fmtDMY(cur.start)} – ${fmtDMY(cur.end)}`;
-      $("#kpiFamily").textContent = displayName[cur.family] || cur.family;
-    } else {
-      $("#badgeNow").style.display = "none";
-      $("#kpiNow").textContent = "—";
-      $("#kpiFamily").textContent = "—";
-    }
-
-    const list = showMineOnly && meFamily ? blocks.filter(b=>b.family===meFamily) : blocks;
-
-    $("#kpiSwaps").textContent = String(swaps.filter(s=>s.status==="Čaká").length);
-    $("#kpiUnread").textContent = String(unread);
-
-    $("#btnMine").disabled = !meFamily;
-
-    renderScheduleDesktop(list, cur);
-    renderScheduleMobile(list, cur);
-  }
-
-  function renderSwapSelects(){
-    const from = $("#swapFrom");
-    const to = $("#swapTo");
-    from.innerHTML = ""; to.innerHTML = "";
-
-    const myBlocks = meFamily ? blocks.filter(b=>b.family===meFamily) : [];
-    const fromList = myBlocks.length ? myBlocks : blocks;
-
-    fromList.forEach(b=>{
-      const opt1 = document.createElement("option");
-      opt1.value = b.id;
-      opt1.textContent = `${displayName[b.family] || b.family} • ${fmtDMY(b.start)}–${fmtDMY(b.end)}`;
-      from.appendChild(opt1);
-    });
-
-    blocks.forEach(b=>{
-      const opt2 = document.createElement("option");
-      opt2.value = b.id;
-      opt2.textContent = `${displayName[b.family] || b.family} • ${fmtDMY(b.start)}–${fmtDMY(b.end)}`;
-      to.appendChild(opt2);
-    });
-
-    if (from.options.length) from.selectedIndex = 0;
-    if (to.options.length) to.selectedIndex = Math.min(1, to.options.length-1);
-  }
-
-  function renderSwaps(){
-    const sb = $("#swapsBody");
-    sb.innerHTML = "";
-
-    swaps.forEach(s=>{
-      const fromB = blocks.find(b=>b.id===s.from);
-      const toB = blocks.find(b=>b.id===s.to);
-      const tr = document.createElement("tr");
-
-      const isMine = meFamily && s.who === meFamily;
-      const isTarget = meFamily && s.target && (meFamily === s.target);
-      const canRespond = role!=="demo" && isTarget && s.status==="Čaká";
-      const canCancel = role!=="demo" && isMine && s.status==="Čaká";
-
-      let actions = "";
-      if (canRespond){
-        actions += `<button class="btn mini" data-accept="${s.id}"><i class="fa-solid fa-check"></i> Prijať</button>
-                    <button class="btn mini" data-decline="${s.id}"><i class="fa-solid fa-xmark"></i> Odmietnuť</button>`;
+      function fmtDate(d){
+        const dt = (d instanceof Date)? d : parseISO(d);
+        const y = dt.getUTCFullYear();
+        const m = pad2(dt.getUTCMonth()+1);
+        const dd = pad2(dt.getUTCDate());
+        return `${dd}.${m}.${y}`;
       }
-      if (canCancel){
-        if (actions) actions += " ";
-        actions += `<button class="btn mini" data-cancel="${s.id}" style="border-color:rgba(251,113,133,.35)"><i class="fa-solid fa-ban"></i> Zrušiť žiadosť</button>`;
+      function todayUTC(){
+        const now = new Date();
+        return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0));
       }
-      if (!actions){
-        actions = '<span class="small" style="color:var(--muted)">—</span>';
+      function weekNumberISO(dateUTC){
+        // ISO week number for a UTC date (00:00)
+        const d = new Date(dateUTC.getTime());
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
       }
 
-      tr.innerHTML = `
-        <td><strong>${escapeHtml(displayName[s.who] || s.who)}</strong></td>
-        <td>${fromB ? (fmtDMY(fromB.start)+" – "+fmtDMY(fromB.end)) : "—"}</td>
-        <td>${toB ? (fmtDMY(toB.start)+" – "+fmtDMY(toB.end)) : "—"}</td>
-        <td>${escapeHtml(s.status)}${s.applied ? " (aplikované)" : ""}</td>
-        <td>${actions}</td>
-      `;
-      sb.appendChild(tr);
-    });
+      function buildScheduleFromStart(startMondayISO, weeksCount){
+        const out = [];
+        const start = parseISO(startMondayISO); // pondelok
+        for(let i=0;i<weeksCount;i++){
+          const from = new Date(start.getTime() + i*7*86400000);
+          const to = new Date(from.getTime() + 6*86400000);
+          const fam = families[i % families.length];
+          out.push({
+            id: i+1,
+            family: fam,
+            from: `${from.getUTCFullYear()}-${pad2(from.getUTCMonth()+1)}-${pad2(from.getUTCDate())}`,
+            to: `${to.getUTCFullYear()}-${pad2(to.getUTCMonth()+1)}-${pad2(to.getUTCDate())}`
+          });
+        }
+        return out;
+      }
 
-    $("#kpiSwaps").textContent = String(swaps.filter(s=>s.status==="Čaká").length);
-  }
+      function isMobile(){
+        return window.matchMedia("(max-width: 760px)").matches;
+      }
 
-  function renderChat(){
-    const box = $("#msgs");
-    box.innerHTML = "";
-    if(!chat.length){
-      box.innerHTML = '<div class="small">Zatiaľ žiadne správy. Napíš prvú správu nižšie.</div>';
-      return;
-    }
-    chat.forEach(m=>{
-      const t = new Date(m.ts);
-      const when = `${pad(t.getDate())}.${pad(t.getMonth()+1)}. ${pad(t.getHours())}:${pad(t.getMinutes())}`;
-      const div = document.createElement("div");
-      div.style.padding = "8px 10px";
-      div.style.border = "1px solid var(--line)";
-      div.style.borderRadius = "12px";
-      div.style.margin = "0 0 8px";
-      div.style.background = "rgba(0,0,0,.10)";
+      function loadPrefs(){
+        try{
+          const raw = localStorage.getItem(PREFS_KEY);
+          return raw ? JSON.parse(raw) : { day:"thursday", time:"18:00" };
+        }catch(_){
+          return { day:"thursday", time:"18:00" };
+        }
+      }
+      function savePrefs(p){
+        try{ localStorage.setItem(PREFS_KEY, JSON.stringify(p)); }catch(_){}
+      }
+      function loadReminders(){
+        try{
+          const raw = localStorage.getItem(REM_KEY);
+          return raw ? JSON.parse(raw) : {};
+        }catch(_){
+          return {};
+        }
+      }
+      function saveReminders(obj){
+        try{ localStorage.setItem(REM_KEY, JSON.stringify(obj)); }catch(_){}
+      }
 
-      const files = (m.files||[]).map(f=>`<span class="tag" style="border-style:dashed"><i class="fa-regular fa-image"></i> ${escapeHtml(f)}</span>`).join(" ");
+      function setOverlay(el, visible){
+        if(!el) return;
+        if(visible){
+          el.classList.remove("hidden");
+          el.setAttribute("aria-hidden","false");
+        }else{
+          el.classList.add("hidden");
+          el.setAttribute("aria-hidden","true");
+        }
+      }
 
-      div.innerHTML = `
-        <div style="font-size:11px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <strong>${escapeHtml(displayName[m.who] || m.who)}</strong><span>•</span><span>${when}</span>
-        </div>
-        <div style="margin-top:6px;font-size:13px">${linkify(escapeHtml(m.text))}</div>
-        ${files ? `<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">${files}</div>` : ``}
-      `;
-      box.appendChild(div);
-    });
-    box.scrollTop = box.scrollHeight;
-  }
+      // ====== UI RENDER ======
+      function render(){
+        hideErr();
 
-  let remOpenBlockId = null;
+        // mobile/desktop
+        const mob = isMobile();
+        $("#scheduleDesktop").style.display = mob ? "none" : "block";
+        $("#scheduleMobile").style.display = mob ? "block" : "none";
 
-  function presetStateText(){
-    if(!meFamily) return "—";
-    const ps = getPresetsFor(meFamily);
-    if(!ps.length) return "vypnuté";
-    const p0 = ps[0];
-    const more = ps.length>1 ? ` +${ps.length-1}` : "";
-    return `${dowToLabel(p0.dow)} ${p0.time}${more}`;
-  }
-  function renderPresetState(){
-    $("#presetState").innerHTML = `<i class="fa-regular fa-bookmark"></i> Trvalé: ${escapeHtml(presetStateText())}`;
-  }
+        // chip user
+        $("#meFamilyLabel").textContent = meFamily ? meFamily : "neprihlásený";
+        $("#meFamilyMono").textContent = meFamily ? meFamily : "—";
+        $("#btnLogout").style.display = meFamily ? "inline-flex" : "none";
+        $("#btnLogin").style.display = meFamily ? "none" : "inline-flex";
 
-  function openReminders(blockId){
-    const b = blocks.find(x=>x.id===Number(blockId));
-    if(!b || !meFamily || role==="demo" || b.family!==meFamily) return;
+        // current block
+        const t = todayUTC();
+        currentBlock = blocks.find(b=>{
+          const from = parseISO(b.from);
+          const to = parseISO(b.to);
+          return t >= from && t <= to;
+        }) || null;
 
-    remOpenBlockId = b.id;
-    $("#remTitle").textContent = `${displayName[meFamily]} • ${fmtDMY(b.start)} – ${fmtDMY(b.end)}`;
-    $("#remHint").innerHTML = `Jednorazové upozornenie môže byť <strong>kedykoľvek</strong>. Odporúčame ho nastaviť okolo týždňa ${fmtDMY(b.start)} – ${fmtDMY(b.end)}.`;
-    $("#remDt").value = "";
+        $("#weekNo").textContent = String(weekNumberISO(t));
+        $("#nowFamily").textContent = currentBlock ? currentBlock.family : "—";
 
-    $("#remDt").removeAttribute("min");
-    $("#remDt").removeAttribute("max");
+        // KPI
+        const next = blocks.find(b => parseISO(b.from) >= t) || null;
+        $("#kpiNext").textContent = next ? fmtDate(next.from) : "—";
+        $("#kpiNextSub").textContent = next ? `${next.family} • ${fmtDate(next.from)} – ${fmtDate(next.to)}` : "—";
 
-    const ps = getPresetsFor(meFamily);
-    if(ps.length){
-      $("#presetDow").value = String(ps[0].dow);
-      $("#presetTime").value = ps[0].time || "18:00";
-    } else {
-      $("#presetDow").value = "1";
-      $("#presetTime").value = "18:00";
-    }
+        const rem = loadReminders();
+        let mineCnt = 0;
+        let mineNext = null;
 
-    renderPresetState();
-    renderRemindersList();
-    $("#remOverlay").classList.remove("hidden");
-    $("#remOverlay").setAttribute("aria-hidden","false");
-  }
-
-  function closeReminders(){
-    remOpenBlockId = null;
-    $("#remOverlay").classList.add("hidden");
-    $("#remOverlay").setAttribute("aria-hidden","true");
-  }
-
-  function renderRemindersList(){
-    const list = $("#remList");
-    list.innerHTML = "";
-    if(!meFamily || !remOpenBlockId) return;
-
-    const b = blocks.find(x=>x.id===remOpenBlockId);
-    const items = getRemFor(meFamily, remOpenBlockId)
-      .map(x=>({ ...x, dt: new Date(x.dtISO) }))
-      .filter(x=>!isNaN(x.dt.getTime()))
-      .sort((a,b)=>a.dt-b.dt);
-
-    const ps = getPresetsFor(meFamily);
-    const now = new Date();
-
-    if(ps.length){
-      const preview = document.createElement("div");
-      preview.className = "small";
-      const lines = ps.map(p=>{
-        const dt = dtInBlockForDowTime(b, p.dow, p.time);
-        if(!dt) return null;
-        const state = (dt<=now) ? "už prešlo" : "naplánované";
-        return `${dowToLabel(p.dow)} ${p.time} → ${fmtDMYHM(dt)} (${state})`;
-      }).filter(Boolean);
-
-      preview.innerHTML = `<strong>Trvalé upozornenia pre tento týždeň:</strong><br>${escapeHtml(lines.join("\n")).replace(/\n/g,"<br>")}`;
-      preview.style.marginBottom = "10px";
-      list.appendChild(preview);
-    }
-
-    if(items.length===0){
-      const empty = document.createElement("div");
-      empty.className = "small";
-      empty.textContent = "Jednorazové upozornenia: zatiaľ žiadne.";
-      list.appendChild(empty);
-    } else {
-      items.forEach(r=>{
-        const div = document.createElement("div");
-        div.className = "remItem";
-
-        const isPast = r.dt <= now;
-        const left = document.createElement("div");
-        left.className = "remWhen";
-        left.innerHTML = `<strong>${escapeHtml(fmtDMYHM(r.dt))}</strong>
-          <small>${isPast ? "Už prešlo" : "Naplánované"}</small>`;
-
-        const btn = document.createElement("button");
-        btn.className = "btn mini";
-        btn.style.borderColor = "rgba(251,113,133,.35)";
-        btn.innerHTML = `<i class="fa-solid fa-trash"></i>`;
-        btn.title = "Zmazať jednorazové upozornenie";
-        btn.addEventListener("click", async ()=>{
-          const cur = getRemFor(meFamily, remOpenBlockId).filter(x=>x.id!==r.id);
-          setRemFor(meFamily, remOpenBlockId, cur);
-
-          try{
-            if(isPushReallyEnabled()){
-              const block = blocks.find(x=>x.id===remOpenBlockId);
-              if(block){
-                const ck = buildClientKey("one", block.id, r.id);
-                await cancelServerPush(ck);
+        if(meFamily){
+          for(const b of blocks){
+            if(b.family !== meFamily) continue;
+            const r = rem[String(b.id)];
+            if(r && r.enabled){
+              mineCnt++;
+              if(!mineNext){
+                const from = parseISO(b.from);
+                if(from >= t) mineNext = b;
               }
             }
-          }catch(e){
-            console.warn("BD642 PUSH: nepodarilo sa zrušiť server push:", e);
+          }
+        }
+        $("#kpiMine").textContent = String(mineCnt);
+        $("#kpiMineSub").textContent = mineNext ? `Najbližšie: ${fmtDate(mineNext.from)} – ${fmtDate(mineNext.to)}` : (mineCnt? "Nastavené v minulých týždňoch" : "—");
+
+        // schedule
+        if(mob) renderScheduleMobile();
+        else renderScheduleDesktop();
+
+        // swap template
+        $("#swapTemplate").value = buildSwapTemplate();
+        updateRemindersPanel();
+        updatePushStateUI();
+      }
+
+      function renderScheduleDesktop(){
+        const rem = loadReminders();
+        const t = todayUTC();
+        const rows = blocks.map(b=>{
+          const from = parseISO(b.from);
+          const to = parseISO(b.to);
+          const isNow = currentBlock && b.id===currentBlock.id;
+          const hasRem = !!(rem[String(b.id)] && rem[String(b.id)].enabled);
+
+          // DÔLEŽITÉ: Nastaviť je disabled len keď nie si prihlásený / demo.
+          // Všetky ostatné podmienky rieši openReminders() (zobrazí hlášku).
+          const remBtnDisabled = (role==="demo" || !meFamily) ? "disabled" : "";
+
+          return `
+            <tr>
+              <td><b>${esc(b.family)}</b> ${isNow ? '<span class="badge badgeNow" style="margin-left:8px"><i class="fa-solid fa-bolt"></i> teraz</span>' : ""}</td>
+              <td class="mono">${fmtDate(b.from)} – ${fmtDate(b.to)}</td>
+              <td>${hasRem ? '<span class="badge badgeDone"><i class="fa-solid fa-bell"></i> nastavené</span>' : '<span class="muted">—</span>'}</td>
+              <td class="colActions">
+                <button type="button" class="btn mini icon" data-rem="${b.id}" ${remBtnDisabled}><i class="fa-solid fa-sliders"></i> Nastaviť</button>
+                <button type="button" class="btn mini icon" data-swap="${b.id}"><i class="fa-solid fa-right-left"></i> Výmena</button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+
+        $("#scheduleDesktop").innerHTML = `
+          <div style="overflow:auto;border:1px solid rgba(255,255,255,.06);border-radius:18px;background:rgba(0,0,0,.16)">
+            <table>
+              <thead>
+                <tr>
+                  <th>Rodina</th>
+                  <th>Termín</th>
+                  <th>Pripomienky</th>
+                  <th>Akcie</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderScheduleMobile(){
+        const rem = loadReminders();
+        const cards = blocks.map(b=>{
+          const isNow = currentBlock && b.id===currentBlock.id;
+          const hasRem = !!(rem[String(b.id)] && rem[String(b.id)].enabled);
+          const remBtnDisabled = (role==="demo" || !meFamily) ? "disabled" : "";
+
+          return `
+            <div style="border:1px solid rgba(255,255,255,.08);border-radius:18px;background:rgba(0,0,0,.16);padding:12px;margin-bottom:10px">
+              <div class="row space">
+                <div>
+                  <b>${esc(b.family)}</b>
+                  ${isNow ? ' <span class="badge badgeNow"><i class="fa-solid fa-bolt"></i> teraz</span>' : ''}
+                </div>
+                <div class="mono small">${fmtDate(b.from)} – ${fmtDate(b.to)}</div>
+              </div>
+              <div style="margin-top:8px">
+                ${hasRem ? '<span class="badge badgeDone"><i class="fa-solid fa-bell"></i> nastavené</span>' : '<span class="muted small">Bez pripomienok</span>'}
+              </div>
+              <div class="row" style="margin-top:10px;justify-content:flex-end">
+                <button type="button" class="btn mini icon" data-rem="${b.id}" ${remBtnDisabled}><i class="fa-solid fa-sliders"></i> Nastaviť</button>
+                <button type="button" class="btn mini icon" data-swap="${b.id}"><i class="fa-solid fa-right-left"></i> Výmena</button>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        $("#scheduleMobile").innerHTML = cards;
+      }
+
+      function buildSwapTemplate(blockId){
+        const b = blockId ? blocks.find(x=>x.id===Number(blockId)) : currentBlock;
+        const fromTo = b ? `${fmtDate(b.from)} – ${fmtDate(b.to)}` : "—";
+        const fam = b ? b.family : "—";
+        const me = meFamily || "___";
+        return `Ahojte, prosím o výmenu týždňa.\n\nMôj týždeň: ${me}\nTýždeň na výmenu: ${fam} (${fromTo})\n\nNavrhnite, prosím, kto by vedel vymeniť. Ďakujem.`;
+      }
+
+      // ====== REMINDERS FLOW ======
+      function openReminders(blockId){
+        const b = blocks.find(x=>x.id===Number(blockId));
+        if(!b || !meFamily || role==="demo") return;
+
+        if (b.family !== meFamily) {
+          alert("Upozornenia vieš nastaviť iba pre svoj týždeň (podľa prihlásenej rodiny).");
+          return;
+        }
+
+        editingBlockId = b.id;
+        const prefs = loadPrefs();
+        const rem = loadReminders();
+        const cur = rem[String(b.id)] || { day:prefs.day, time:prefs.time, text:`Upratovanie: ${b.family}`, enabled:true };
+
+        $("#remTitleNote").innerHTML = `<b>${esc(b.family)}</b> • ${fmtDate(b.from)} – ${fmtDate(b.to)}`;
+        $("#remDay").value = cur.day || prefs.day;
+        $("#remTime").value = cur.time || prefs.time;
+        $("#remText").value = cur.text || `Upratovanie: ${b.family}`;
+
+        setOverlay($("#remOverlay"), true);
+      }
+
+      function updateRemindersPanel(){
+        const prefs = loadPrefs();
+        $("#prefDay").value = prefs.day || "thursday";
+        $("#prefTime").value = prefs.time || "18:00";
+
+        const rem = loadReminders();
+        const list = $("#remindersList");
+        list.innerHTML = "";
+
+        if(!meFamily){
+          list.innerHTML = `<div class="note warn">Najprv sa prihlás (vyber rodinu), aby sa dali spravovať pripomienky.</div>`;
+          return;
+        }
+
+        // ukáž iba pripomienky pre rodinu (v jej týždňoch)
+        const mine = blocks.filter(b=>b.family===meFamily).map(b=>{
+          const r = rem[String(b.id)];
+          if(!r || !r.enabled) return null;
+          return { b, r };
+        }).filter(Boolean);
+
+        if(!mine.length){
+          list.innerHTML = `<div class="small muted">Zatiaľ nemáš nastavené pripomienky. Klikni <b>Nastaviť</b> na svojom týždni v rozpis-e.</div>`;
+          return;
+        }
+
+        for(const it of mine){
+          const b = it.b, r = it.r;
+          const el = document.createElement("div");
+          el.className = "field";
+          el.innerHTML = `
+            <div class="row space">
+              <div><b>${esc(b.family)}</b> <span class="muted small">(${fmtDate(b.from)} – ${fmtDate(b.to)})</span></div>
+              <button class="btn mini" type="button" data-rem="${b.id}"><i class="fa-solid fa-sliders"></i> Upraviť</button>
+            </div>
+            <div class="small"><b>${esc(r.day)}</b> • <span class="mono">${esc(r.time)}</span> • ${esc(r.text)}</div>
+          `;
+          list.appendChild(el);
+        }
+      }
+
+      function saveReminderFromModal(){
+        const b = blocks.find(x=>x.id===Number(editingBlockId));
+        if(!b || !meFamily || role==="demo") return;
+
+        const day = $("#remDay").value;
+        const time = $("#remTime").value;
+        const text = ($("#remText").value || "").trim() || `Upratovanie: ${b.family}`;
+
+        const rem = loadReminders();
+        rem[String(b.id)] = { day, time, text, enabled:true };
+        saveReminders(rem);
+
+        // Po uložení naplánuj lokálnu notifikáciu (iba best-effort)
+        scheduleLocalReminder(b, rem[String(b.id)]);
+
+        setOverlay($("#remOverlay"), false);
+        render();
+      }
+
+      function deleteReminderFromModal(){
+        const b = blocks.find(x=>x.id===Number(editingBlockId));
+        if(!b) return;
+        const rem = loadReminders();
+        delete rem[String(b.id)];
+        saveReminders(rem);
+        setOverlay($("#remOverlay"), false);
+        render();
+      }
+
+      function testReminderFromModal(){
+        const text = ($("#remText").value || "").trim() || "Test notifikácie";
+        fireLocalNotification("BD 642 – Test", text);
+      }
+
+      // ====== LOCAL NOTIFICATIONS (best-effort) ======
+      async function ensureNotificationPermission(){
+        try{
+          if(!("Notification" in window)) return false;
+          if(Notification.permission === "granted") return true;
+          if(Notification.permission === "denied") return false;
+          const perm = await Notification.requestPermission();
+          return perm === "granted";
+        }catch(_){
+          return false;
+        }
+      }
+
+      function fireLocalNotification(title, body){
+        try{
+          if(!("Notification" in window)) return;
+          if(Notification.permission !== "granted") return;
+          new Notification(title, { body });
+        }catch(_){}
+      }
+
+      function getDateForWeekdayInBlock(block, weekday){
+        // weekday: monday..sunday => dátum v rozsahu block
+        const map = { monday:1, tuesday:2, wednesday:3, thursday:4, friday:5, saturday:6, sunday:7 };
+        const want = map[weekday] || 4;
+
+        const from = parseISO(block.from);
+        const fromDow = (from.getUTCDay()===0 ? 7 : from.getUTCDay()); // 1..7
+        const delta = want - fromDow;
+        const d = new Date(from.getTime() + delta*86400000);
+        return d;
+      }
+
+      function scheduleLocalReminder(block, rem){
+        // Naplánuj iba ak je to budúci čas (najbližšie)
+        try{
+          const dayDate = getDateForWeekdayInBlock(block, rem.day);
+          const [hh,mm] = String(rem.time||"18:00").split(":").map(Number);
+          const when = new Date(Date.UTC(dayDate.getUTCFullYear(), dayDate.getUTCMonth(), dayDate.getUTCDate(), hh||18, mm||0, 0));
+          const now = new Date();
+          const ms = when.getTime() - now.getTime();
+          if(ms <= 2000 || ms > 7*86400000) return; // mimo rozumného okna (best-effort)
+          setTimeout(async ()=>{
+            const ok = await ensureNotificationPermission();
+            if(ok){
+              fireLocalNotification("BD 642 – Pripomienka", rem.text || "Upratovanie");
+            }
+          }, ms);
+        }catch(_){}
+      }
+
+      // ====== LOGIN / LOGOUT ======
+      function openLogin(){
+        pendingFamily = null;
+        $("#btnConfirmFamily").disabled = true;
+        buildFamilyPills();
+        setOverlay($("#loginOverlay"), true);
+      }
+
+      function buildFamilyPills(){
+        const box = $("#familyPills");
+        box.innerHTML = "";
+        for(const fam of families){
+          const pill = document.createElement("button");
+          pill.type = "button";
+          pill.className = "pill";
+          pill.textContent = fam;
+          pill.addEventListener("click", ()=>{
+            $$("#familyPills .pill").forEach(p=>p.classList.remove("active"));
+            pill.classList.add("active");
+            pendingFamily = fam;
+            $("#btnConfirmFamily").disabled = false;
+          });
+          box.appendChild(pill);
+        }
+      }
+
+      function confirmFamily(){
+        if(!pendingFamily) return;
+        role = "user";
+        meFamily = pendingFamily;
+        try{
+          localStorage.setItem(PRESET_KEY, meFamily);
+          localStorage.setItem("bd642_meFamily", meFamily);
+          localStorage.removeItem("bd642_role"); // zruš demo flag
+        }catch(_){}
+        setOverlay($("#loginOverlay"), false);
+        render();
+      }
+
+      function demoMode(){
+        // Demo je povolené iba cez URL ?demo=1
+        const urlDemo = (() => {
+          try { return new URLSearchParams(location.search).get("demo") === "1"; }
+          catch(_) { return false; }
+        })();
+
+        if(!urlDemo){
+          alert("Demo režim sa zapína iba cez URL parameter ?demo=1");
+          return;
+        }
+
+        role = "demo";
+        meFamily = null;
+        try{
+          localStorage.setItem("bd642_role","demo");
+          localStorage.removeItem(PRESET_KEY);
+          localStorage.removeItem("bd642_meFamily");
+        }catch(_){}
+        setOverlay($("#loginOverlay"), false);
+        render();
+      }
+
+      function doLogout(){
+        role = "user";
+        meFamily = null;
+        try{
+          localStorage.removeItem(PRESET_KEY);
+          localStorage.removeItem("bd642_meFamily");
+          localStorage.removeItem("bd642_role");
+        }catch(_){}
+        render();
+        // zobraziť login overlay po logout
+        setOverlay($("#loginOverlay"), true);
+      }
+
+      // ====== TABS ======
+      function showTab(id){
+        $$(".tabbtn").forEach(b=>b.classList.toggle("active", b.dataset.tab===id));
+        $$(".tab").forEach(t=>t.classList.toggle("active", t.id===id));
+      }
+
+      // ====== EXPORT ======
+      function doExport(){
+        const data = {
+          version: "v16",
+          tz: TZ,
+          meFamily,
+          prefs: loadPrefs(),
+          reminders: loadReminders(),
+          generatedAt: new Date().toISOString(),
+          schedule: blocks
+        };
+        const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `bd642_export_${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+      }
+
+      // ====== PUSH (voliteľné) ======
+      function updatePushStateUI(){
+        // len UI; reálne push rieši externý skript, ak je napojený
+        let state = null;
+        try{ state = JSON.parse(localStorage.getItem(PUSH_STATE_KEY) || "null"); }catch(_){}
+        const note = $("#pushStateNote");
+        if(!state){
+          note.style.display = "none";
+          return;
+        }
+        note.style.display = "block";
+        note.textContent = state.message || "Push stav: neznámy";
+      }
+
+      async function enablePushFromButton(){
+        // Tento hook je pripravený na tvoju existujúcu logiku (bd642_firebase_messaging.js)
+        // Musí existovať globálna funkcia: window.BD642_EnablePush()
+        try{
+          if(typeof window.BD642_EnablePush !== "function"){
+            alert("Push modul nie je pripojený (BD642_EnablePush chýba). Najprv doplň bd642_firebase_messaging.js.");
+            return;
+          }
+          const res = await window.BD642_EnablePush();
+          try{ localStorage.setItem(PUSH_STATE_KEY, JSON.stringify({ ok:true, message: String(res||"Push zapnutý") })); }catch(_){}
+          updatePushStateUI();
+        }catch(err){
+          try{ localStorage.setItem(PUSH_STATE_KEY, JSON.stringify({ ok:false, message: "Push chyba: " + String(err && err.message ? err.message : err) })); }catch(_){}
+          updatePushStateUI();
+        }
+      }
+
+      function syncAllServerPush(){
+        // placeholder - v tvojej verzii sa tu môže volať fetch na server, ak existuje
+        // teraz iba refresh UI
+        render();
+      }
+
+      // ====== WIRE EVENTS ======
+      function wire(){
+        // tabs
+        $$(".tabbtn").forEach(btn=>{
+          btn.addEventListener("click", ()=>showTab(btn.dataset.tab));
+        });
+
+        // login/logout
+        $("#btnLogin").addEventListener("click", openLogin);
+        $("#btnChangeFamily").addEventListener("click", openLogin);
+        $("#btnLogout").addEventListener("click", doLogout);
+
+        $("#closeLogin").addEventListener("click", ()=>setOverlay($("#loginOverlay"), false));
+        $("#btnConfirmFamily").addEventListener("click", confirmFamily);
+        $("#btnDemo").addEventListener("click", demoMode);
+
+        // reminders modal
+        $("#closeRem").addEventListener("click", ()=>setOverlay($("#remOverlay"), false));
+        $("#btnSaveRem").addEventListener("click", saveReminderFromModal);
+        $("#btnDeleteRem").addEventListener("click", deleteReminderFromModal);
+        $("#btnTestRem").addEventListener("click", testReminderFromModal);
+
+        // prefs
+        $("#prefDay").addEventListener("change", ()=>{
+          const p = loadPrefs();
+          p.day = $("#prefDay").value;
+          savePrefs(p);
+        });
+        $("#prefTime").addEventListener("change", ()=>{
+          const p = loadPrefs();
+          p.time = $("#prefTime").value;
+          savePrefs(p);
+        });
+
+        // export
+        $("#btnExport").addEventListener("click", doExport);
+
+        // today (scroll na aktuálny blok v tabuľke)
+        $("#btnToday").addEventListener("click", ()=>{
+          showTab("tab-schedule");
+          // v mobile nič netreba; v desktop-e posuň sa približne na "teraz"
+          try{
+            const b = currentBlock;
+            if(!b) return;
+            const btn = document.querySelector(`[data-rem="${b.id}"]`);
+            if(btn) btn.scrollIntoView({behavior:"smooth", block:"center"});
+          }catch(_){}
+        });
+
+        // swap copy
+        $("#btnCopySwap").addEventListener("click", async ()=>{
+          try{
+            await navigator.clipboard.writeText($("#swapTemplate").value);
+            $("#btnCopySwap").textContent = "Skopírované";
+            setTimeout(()=>$("#btnCopySwap").innerHTML = '<i class="fa-regular fa-copy"></i> Kopírovať', 1200);
+          }catch(_){
+            alert("Nepodarilo sa skopírovať do schránky.");
+          }
+        });
+
+        // PUSH + SYNC + RESET
+        $("#btnEnablePush").addEventListener("click", enablePushFromButton);
+        $("#simulateSync").addEventListener("click", ()=>{ try{ syncAllServerPush(); }catch(_){ render(); } });
+
+        $("#resetApp").addEventListener("click", ()=>{
+          if(!confirm("Reset vymaže lokálne nastavenia (kód rodiny, preferencie, upozornenia). Pokračovať?")) return;
+          try{
+            localStorage.removeItem("bd642_meFamily");
+            localStorage.removeItem("bd642_role");
+            localStorage.removeItem(PREFS_KEY);
+            localStorage.removeItem(REM_KEY);
+            localStorage.removeItem(PRESET_KEY);
+            localStorage.removeItem(PUSH_STATE_KEY);
+            localStorage.removeItem(PUSH_TOKEN_KEY);
+          }catch(_){}
+          location.reload();
+        });
+
+        // Delegácia klikov na Nastaviť / Výmena (robustne)
+        document.addEventListener("click", (ev)=>{
+          const t = ev.target;
+          if(!t) return;
+
+          const remBtn = t.closest && t.closest("[data-rem]");
+          if(remBtn){
+            const id = remBtn.getAttribute("data-rem");
+            // Ak je disabled, nič
+            if(remBtn.hasAttribute("disabled")) return;
+            openReminders(id);
+            return;
           }
 
-          renderRemindersList();
-          renderSchedule();
-          scheduleNotification();
-        });
+          const swapBtn = t.closest && t.closest("[data-swap]");
+          if(swapBtn){
+            const id = swapBtn.getAttribute("data-swap");
+            $("#swapTemplate").value = buildSwapTemplate(id);
+            showTab("tab-swaps");
+            return;
+          }
+        }, {capture:false});
 
-        div.appendChild(left);
-        div.appendChild(btn);
-        list.appendChild(div);
-      });
-    }
+        // resize rerender
+        window.addEventListener("resize", ()=>render());
+      }
 
-    const total = countAllForBlock(remOpenBlockId);
-    $("#remCount").innerHTML = `<i class="fa-regular fa-bell"></i> ${total} upozornení (spolu)`;
-  }
+      // ====== INIT (s automatickou opravou zaseknutého demo režimu) ======
+      function init(){
+        // 1) načítaj uloženú rodinu + demo flag
+        const savedFam = (localStorage.getItem("bd642_meFamily") || localStorage.getItem(PRESET_KEY) || "").trim();
+        const savedRole = (localStorage.getItem("bd642_role") || "").trim();
 
-  function canNotify(){ return ("Notification" in window); }
+        // Demo režim povoľ iba cez URL ?demo=1
+        const urlDemo = (() => {
+          try { return new URLSearchParams(location.search).get("demo") === "1"; }
+          catch(_) { return false; }
+        })();
 
-  async function ensureNotifyPermission(){
-    if(!canNotify()) return false;
-    if(Notification.permission === "granted") return true;
-    if(Notification.permission === "denied") return false;
-    try{ return (await Notification.requestPermission()) === "granted"; }
-    catch(_){ return false; }
-  }
+        // Ak bol demo režim uložený omylom, automaticky ho zruš (inak budú tlačidlá disabled)
+        if (savedRole === "demo" && !urlDemo) {
+          try { localStorage.removeItem("bd642_role"); } catch(_) {}
+        }
 
-  function updateNotifyUi(next){
-    const n = $("#notifyState");
-    const r = $("#nextReminder");
-    const has = ("Notification" in window);
+        const effectiveRole = (savedRole === "demo" && urlDemo) ? "demo" : "user";
 
-    let perm = "—";
-    if(has){
-      perm = Notification.permission === "granted" ? "povolené" : (Notification.permission === "denied" ? "zamietnuté" : "nevyžiadané");
-    } else {
-      perm = "nepodporované (napr. niektoré mobilné prehliadače)";
-    }
-    n.innerHTML = `<i class="fa-regular fa-bell"></i> Notifikácie: ${escapeHtml(perm)} (${prefs.notifyEnabled==="on" ? "zap." : "vyp."})`;
+        if (effectiveRole === "demo") {
+          role = "demo";
+          meFamily = null;
+          setOverlay($("#loginOverlay"), false);
+        } else if (savedFam && families.includes(savedFam)) {
+          role = "user";
+          meFamily = savedFam;
+          setOverlay($("#loginOverlay"), false);
 
-    if(next && next.dt){
-      r.innerHTML = `<i class="fa-regular fa-clock"></i> Najbližšie upozornenie: ${escapeHtml(fmtDMYHM(next.dt))}`;
-    } else {
-      r.innerHTML = `<i class="fa-regular fa-clock"></i> Najbližšie upozornenie: —`;
-    }
-  }
+          // voliteľné hooky
+          setTimeout(()=>{ try{ window.dispatchEvent(new Event("BD642:PoPrihlaseni")); }catch(_){ } }, 300);
+          setTimeout(()=>{ try{ syncAllServerPush(); }catch(_){ } }, 800);
+        } else {
+          role = "user";
+          meFamily = null;
+          // zobraziť login pri prvom spustení
+          setOverlay($("#loginOverlay"), true);
+        }
 
-  function toIcsDate(dt){
-    return `${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}`;
-  }
-  function toIcsDateTime(dt){
-    return `${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}${pad(dt.getSeconds())}`;
-  }
-  function escIcs(s){
-    return String(s||"")
-      .replace(/\\/g,"\\\\")
-      .replace(/\n/g,"\\n")
-      .replace(/,/g,"\\,")
-      .replace(/;/g,"\\;");
-  }
+        // 2) prefs default
+        const p = loadPrefs();
+        if(!p || !p.day || !p.time){
+          savePrefs({ day:"thursday", time:"18:00" });
+        }
 
-  function buildMyCalendarIcs(){
-    if(!meFamily){
-      alert("Najprv sa prihlás.");
-      return null;
-    }
-    const famName = displayName[meFamily] || meFamily;
-    const now = new Date();
-    const lines = [];
-    lines.push("BEGIN:VCALENDAR");
-    lines.push("VERSION:2.0");
-    lines.push("PRODID:-//BD642//Upratovanie BD 642//SK");
+        // 3) wire + render
+        wire();
+        render();
+      }
 
-    blocks.forEach(b=>{
-      if(b.family !== meFamily) return;
-
-      const start = d0(b.start);
-      const end = new Date(d0(b.end).getTime() + 24*3600*1000);
-      const uid = `bd642-week-${b.id}-${meFamily}@bd642`;
-
-      lines.push("BEGIN:VEVENT");
-      lines.push(`UID:${uid}`);
-      lines.push(`DTSTAMP:${toIcsDateTime(now)}`);
-      lines.push(`SUMMARY:${escIcs("Upratovanie – " + famName)}`);
-      lines.push(`DESCRIPTION:${escIcs("Týždeň upratovania " + famName + " (" + fmtDMY(b.start) + " – " + fmtDMY(b.end) + ")")}`);
-      lines.push(`DTSTART;VALUE=DATE:${toIcsDate(start)}`);
-      lines.push(`DTEND;VALUE=DATE:${toIcsDate(end)}`);
-      lines.push("END:VEVENT");
-
-      const oneOffs = getRemFor(meFamily, b.id);
-      oneOffs.forEach(r=>{
-        const dt = new Date(r.dtISO);
-        if(isNaN(dt.getTime())) return;
-        const uidR = `bd642-rem-${b.id}-${r.id}-${meFamily}@bd642`;
-        lines.push("BEGIN:VEVENT");
-        lines.push(`UID:${uidR}`);
-        lines.push(`DTSTAMP:${toIcsDateTime(now)}`);
-        lines.push(`SUMMARY:${escIcs("Pripomienka upratovania – " + famName)}`);
-        lines.push(`DESCRIPTION:${escIcs("Jednorazové upozornenie pre týždeň " + fmtDMY(b.start) + " – " + fmtDMY(b.end))}`);
-        lines.push(`DTSTART:${toIcsDateTime(dt)}`);
-        lines.push("END:VEVENT");
-      });
-
-      const ps = getPresetsFor(meFamily);
-      ps.forEach(p=>{
-        const dt = dtInBlockForDowTime(b, p.dow, p.time);
-        if(!dt) return;
-        const uidP = `bd642-rem-p-${b.id}-${p.id}-${meFamily}@bd642`;
-        lines.push("BEGIN:VEVENT");
-        lines.push(`UID:${uidP}`);
-        lines.push(`DTSTAMP:${toIcsDateTime(now)}`);
-        lines.push(`SUMMARY:${escIcs("Pripomienka upratovania – " + famName)}`);
-        lines.push(`DESCRIPTION:${escIcs("Trvalé upozornenie pre týždeň " + fmtDMY(b.start) + " – " + fmtDMY(b.end))}`);
-        lines.push(`DTSTART:${toIcsDateTime(dt)}`);
-        lines.push("END:VEVENT");
-      });
-    });
-
-    lines.push("END:VCALENDAR");
-    return lines.join("\r\n");
-  }
-
-  let notifyTimer = null;
-  function clearNotifyTimer(){ if(notifyTimer){ clearTimeout(notifyTimer); notifyTimer=null; } }
-
-  async function scheduleNotification(){
-    clearNotifyTimer();
-
-    const next = nextUpcomingReminder();
-    updateNotifyUi(next);
-
-    if(prefs.notifyEnabled!=="on") return;
-    if(role==="demo") return;
-    if(!online) return;
-    if(!meFamily) return;
-
-    const ok = await ensureNotifyPermission();
-    if(!ok) return;
-
-    if(!next) return;
-
-    const ms = next.dt.getTime() - Date.now();
-    if(ms <= 0) return;
-
-    notifyTimer = setTimeout(()=>{
       try{
-        const title = "BD 642 – Upratovanie";
-        const body = `(${displayName[meFamily]}) ${fmtDMY(next.block.start)} – ${fmtDMY(next.block.end)}.`;
-        new Notification(title, { body });
-      }catch(_){}
-      scheduleNotification();
-    }, ms);
-  }
-
-  function nextUpcomingReminder(){
-    if(!meFamily) return null;
-    const now = new Date();
-    let best = null;
-
-    const f = reminders[meFamily] || {};
-    Object.entries(f).forEach(([bid, list])=>{
-      if(!Array.isArray(list)) return;
-      list.forEach(r=>{
-        const dt = new Date(r.dtISO);
-        if (isNaN(dt.getTime()) || dt <= now) return;
-        if (!best || dt < best.dt) best = { dt, type:"one", blockId:Number(bid), id:r.id };
-      });
-    });
-
-    const ps = getPresetsFor(meFamily);
-    if(ps.length){
-      blocks.forEach(b=>{
-        if(b.family!==meFamily) return;
-        ps.forEach(p=>{
-          const dt = dtInBlockForDowTime(b, p.dow, p.time);
-          if(!dt || dt <= now) return;
-          if(!best || dt < best.dt) best = { dt, type:"preset", blockId:b.id, id:p.id };
-        });
-      });
-    }
-
-    if(!best) return null;
-    const block = blocks.find(x=>x.id===best.blockId);
-    if(!block) return null;
-    return { ...best, block };
-  }
-
-  function rerenderAll(){
-    setHeaderState();
-    renderSchedule();
-    renderSwapSelects();
-    renderSwaps();
-    renderChat();
-    renderPresetState();
-    updateNotifyUi(nextUpcomingReminder());
-  }
-
-  function showLoginError(msg){
-    document.querySelector("#loginErrTxt").textContent = msg;
-    document.querySelector("#loginErr").classList.add("show");
-  }
-  function clearLoginError(){ document.querySelector("#loginErr").classList.remove("show"); }
-
-  /* PUSH UI helper – naviazaný na token, ale stav je uložený v localStorage (trvalý) */
-  function setPushUi(state, token){
-    const elState = document.querySelector("#pushState");
-    const elTok = document.querySelector("#pushTokenShort");
-
-    try {
-      if (state === "OK") {
-        localStorage.setItem(PUSH_STATE_KEY, "OK");
-        if (token) localStorage.setItem(PUSH_TOKEN_KEY, String(token));
-      } else if (state === "DENIED" || state === "UNSUPPORTED" || state === "ERR") {
-        localStorage.setItem(PUSH_STATE_KEY, state);
-        localStorage.removeItem(PUSH_TOKEN_KEY);
-      } else if (state === "—" || !state) {
-        localStorage.removeItem(PUSH_STATE_KEY);
-        localStorage.removeItem(PUSH_TOKEN_KEY);
-      }
-    } catch(_){}
-
-    if(state === "OK"){
-      elState.className = "tag ok";
-      const famLabel = meFamily ? (displayName[meFamily] || meFamily) : null;
-      const whoTxt = famLabel ? ` (pre ${escapeHtml(famLabel)})` : "";
-      elState.innerHTML = '<i class="fa-solid fa-circle-check"></i> Push: zapnuté' + whoTxt;
-      const short = token ? (String(token).slice(0,10) + "…" + String(token).slice(-6)) : "—";
-      elTok.className = "tag";
-      elTok.innerHTML = `<i class="fa-solid fa-key"></i> Token: ${escapeHtml(short)}`;
-      return;
-    }
-
-    if(state === "DENIED"){
-      elState.className = "tag bad";
-      elState.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Push: zamietnuté v prehliadači';
-      elTok.className = "tag";
-      elTok.innerHTML = '<i class="fa-solid fa-key"></i> Token: —';
-      return;
-    }
-
-    if(state === "UNSUPPORTED"){
-      elState.className = "tag warn";
-      elState.innerHTML = '<i class="fa-solid fa-circle-info"></i> Push: nepodporované na tomto zariadení';
-      elTok.className = "tag";
-      elTok.innerHTML = '<i class="fa-solid fa-key"></i> Token: —';
-      return;
-    }
-
-    if(state === "ERR"){
-      elState.className = "tag bad";
-      elState.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Push: chyba (pozri konzolu)';
-      elTok.className = "tag";
-      elTok.innerHTML = '<i class="fa-solid fa-key"></i> Token: —';
-      return;
-    }
-
-    if(state === "WORKING"){
-      elState.className = "tag";
-      elState.innerHTML = '<i class="fa-solid fa-gear fa-spin"></i> Push: prebieha nastavenie…';
-      return;
-    }
-
-    elState.className = "tag";
-    elState.innerHTML = '<i class="fa-regular fa-bell"></i> Push: —';
-    elTok.className = "tag";
-    elTok.innerHTML = '<i class="fa-solid fa-key"></i> Token: —';
-  }
-
-  async function enablePushFromButton(btn){
-    try{
-      if(role === "demo"){
-        alert("V demo režime nie je možné zapnúť push notifikácie.");
-        setPushUi("UNSUPPORTED");
-        return;
-      }
-      if(!meFamily){
-        alert("Najprv sa prihlás cez kód rodiny a až potom zapni push notifikácie.");
-        setPushUi("ERR");
-        return;
+        init();
+      }catch(err){
+        showErr("Inicializácia zlyhala. Pozri chybu nižšie.", err);
       }
 
-      setPushUi("WORKING");
-      if(btn){
-        btn.disabled = true;
-        const txt = document.querySelector("#btnPushText");
-        if(txt) txt.textContent = "Zapínam…";
-      }
+    })();
+  </script>
 
-      if(!("Notification" in window) || !("serviceWorker" in navigator)){
-        alert("Tento prehliadač nepodporuje web push (Notification + Service Worker).");
-        setPushUi("UNSUPPORTED");
-        return;
-      }
-
-      if(typeof window.BD642_ZapnutUpozornenia !== "function"){
-        alert("Push modul nie je načítaný. Skontroluj bd642_firebase_messaging.js.");
-        setPushUi("ERR");
-        return;
-      }
-
-      const res = await window.BD642_ZapnutUpozornenia();
-      console.log("BD642: výsledok BD642_ZapnutUpozornenia:", res);
-
-      if(res && res.ok && res.token){
-        setPushUi("OK", res.token);
-        try{ await syncAllServerPush(); }catch(_){ }
-        return;
-      }
-
-      const dovod = res && res.dovod ? res.dovod : "NEZNAME";
-      if(dovod === "NEPODPOROVANE") setPushUi("UNSUPPORTED");
-      else if(dovod === "NEPOVOLENE") setPushUi("DENIED");
-      else setPushUi("ERR");
-    }catch(e){
-      console.error("BD642: chyba pri zapínaní push notifikácií:", e);
-      alert("Nepodarilo sa zapnúť push notifikácie (pozri konzolu).");
-      setPushUi("ERR");
-    }finally{
-      if(btn){
-        btn.disabled = false;
-        const txt = document.querySelector("#btnPushText");
-        if(txt) txt.textContent = "Zapnúť push";
-      }
-    }
-  }
-
-  function doLoginFromInput(){
-    clearLoginError();
-    const raw = document.querySelector("#loginCode").value;
-    const fam = familyFromInput(raw);
-    if(!raw.trim()){ showLoginError("Zadaj kód."); return; }
-    if(!fam){ showLoginError("Neplatný kód."); return; }
-
-    meFamily = fam;
-    role = "user";
-    localStorage.setItem("bd642_meFamily", meFamily);
-    localStorage.setItem("bd642_role", role);
-
-    document.querySelector("#loginOverlay").classList.add("hidden");
-    document.querySelector("#loginOverlay").setAttribute("aria-hidden","true");
-    rerenderAll();
-    scheduleNotification();
-
-    try{ window.dispatchEvent(new Event("BD642:PoPrihlaseni")); } catch(_){ }
-    try{ syncAllServerPush(); }catch(_){ }
-  }
-
-  function doLogout(){
-    meFamily = null;
-    role = "user";
-    showMineOnly = false;
-    localStorage.removeItem("bd642_meFamily");
-    localStorage.removeItem("bd642_role");
-
-    document.querySelector("#loginCode").value = "";
-    clearLoginError();
-    document.querySelector("#loginOverlay").classList.remove("hidden");
-    document.querySelector("#loginOverlay").setAttribute("aria-hidden","false"); /* FIX */
-    rerenderAll();
-    scheduleNotification();
-  }
-
-  function wire(){
-    document.querySelector("#loginBtn").addEventListener("click", doLoginFromInput);
-    document.querySelector("#loginCode").addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLoginFromInput(); });
-
-    document.querySelector("#btnLogout").addEventListener("click", doLogout);
-
-    document.querySelector("#btnMine").addEventListener("click", ()=>{
-      if(!meFamily) return;
-      showMineOnly = true;
-      renderSchedule();
-    });
-    document.querySelector("#btnAll").addEventListener("click", ()=>{
-      showMineOnly = false;
-      renderSchedule();
-    });
-
-    document.querySelector("#remClose").addEventListener("click", closeReminders);
-    document.querySelector("#remOverlay").addEventListener("click", (e)=>{ if(e.target===document.querySelector("#remOverlay")) closeReminders(); });
-
-    /* ... zvyšok tvojho pôvodného wire() je bez zmien ... */
-
-    const btnPush = document.querySelector("#btnPushEnable");
-    if(btnPush){
-      btnPush.addEventListener("click", (e)=>{
-        e.preventDefault();
-        enablePushFromButton(btnPush);
-      });
-    }
-
-    document.querySelector("#btnIcs").addEventListener("click", (e)=>{
-      e.preventDefault();
-      const ics = buildMyCalendarIcs();
-      if(!ics) return;
-      const famNameSafe = meFamily ? (displayName[meFamily] || meFamily).replace(/\s+/g,"_") : "upratovanie";
-      const blob = new Blob([ics], {type:"text/calendar"});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `bd642_upratovanie_${famNameSafe}.ics`;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
-    });
-  }
-
-  loadPrefs();
-  loadReminders();
-  loadPresets();
-  initData();
-  ensureCoverage();
-
-  const t = new Date();
-  document.querySelector("#txtLast").textContent = `Posl. sync: ${pad(t.getDate())}.${pad(t.getMonth()+1)}. ${pad(t.getHours())}:${pad(t.getMinutes())}`;
-
-  const savedFam = (localStorage.getItem("bd642_meFamily") || "").trim();
-  const savedRole = (localStorage.getItem("bd642_role") || "").trim();
-
-  if(savedRole==="demo"){
-    role = "demo";
-    meFamily = null;
-    document.querySelector("#loginOverlay").classList.add("hidden");
-    document.querySelector("#loginOverlay").setAttribute("aria-hidden","true");
-  } else if(savedFam && families.includes(savedFam)){
-    role = "user";
-    meFamily = savedFam;
-    document.querySelector("#loginOverlay").classList.add("hidden");
-    document.querySelector("#loginOverlay").setAttribute("aria-hidden","true");
-
-    setTimeout(()=>{ try{ window.dispatchEvent(new Event("BD642:PoPrihlaseni")); }catch(_){ } }, 300);
-    setTimeout(()=>{ try{ syncAllServerPush(); }catch(_){ } }, 800);
-  } else {
-    role = "user";
-    meFamily = null;
-  }
-
-  document.querySelector("#notifyEnabled").value = prefs.notifyEnabled;
-
-  try {
-    const st = localStorage.getItem(PUSH_STATE_KEY);
-    const tok = localStorage.getItem(PUSH_TOKEN_KEY);
-    if (st === "OK" && tok) {
-      setPushUi("OK", tok);
-    } else if (st === "DENIED" || st === "UNSUPPORTED" || st === "ERR") {
-      setPushUi(st);
-    } else {
-      setPushUi("—");
-    }
-  } catch(_){
-    setPushUi("—");
-  }
-
-  wire();
-  rerenderAll();
-  scheduleNotification();
-
-  setInterval(()=>{
-    const last = blocks[blocks.length-1];
-    if(!last) return;
-    const lastEnd = d0(last.end);
-    const today = new Date();
-    const plus90 = new Date(today.getFullYear(), today.getMonth(), today.getDate()+90);
-    if (lastEnd < plus90){
-      ensureCoverage();
-      rerenderAll();
-      scheduleNotification();
-    }
-  }, 10000);
-})();
-</script>
-
-<!-- PWA inštalácia – JEDINÁ verzia (mimo iných handlerov) -->
-<script>
-(function(){
-  const btn = document.getElementById("btnInstallApp");
-  const hint = document.getElementById("pwaInstallHint");
-  const txt = document.getElementById("btnInstallText");
-
-  if(!btn || !hint) return;
-
-  function isStandalone(){
-    return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
-  }
-  function isIOS(){
-    return /iphone|ipad|ipod/i.test(navigator.userAgent);
-  }
-
-  let deferredPrompt = null;
-
-  function setUi(state){
-    if(isStandalone()){
-      btn.disabled = true;
-      btn.style.opacity = "0.6";
-      if(txt) txt.textContent = "Nainštalované";
-      hint.textContent = "Aplikácia je už nainštalovaná (PWA).";
-      return;
-    }
-
-    if(isIOS()){
-      btn.disabled = true;
-      btn.style.opacity = "0.75";
-      if(txt) txt.textContent = "Návod pre iOS";
-      hint.textContent = "iOS: otvor v Safari → Zdieľať → Pridať na plochu.";
-      return;
-    }
-
-    if(state === "ready"){
-      btn.disabled = false;
-      btn.style.opacity = "1";
-      if(txt) txt.textContent = "Nainštalovať";
-      hint.textContent = "Dostupná inštalácia (Chrome/Edge). Klikni na Nainštalovať.";
-      return;
-    }
-
-    btn.disabled = true;
-    btn.style.opacity = "0.6";
-    if(txt) txt.textContent = "Nainštalovať";
-    hint.textContent = "Inštalácia nie je dostupná. Skontroluj, či je stránka na HTTPS, má manifest a service worker.";
-  }
-
-  setUi("not-available");
-
-  window.addEventListener("beforeinstallprompt", (e)=>{
-    e.preventDefault();
-    deferredPrompt = e;
-    setUi("ready");
-  });
-
-  window.addEventListener("appinstalled", ()=>{
-    deferredPrompt = null;
-    setUi("installed");
-  });
-
-  btn.addEventListener("click", async ()=>{
-    if(isIOS()){
-      alert("iOS: otvor v Safari → Zdieľať → Pridať na plochu.");
-      return;
-    }
-    if(!deferredPrompt){
-      alert("Inštalácia nie je momentálne dostupná. Skús obnoviť stránku a uisti sa, že používaš Chrome/Edge.");
-      return;
-    }
-    try{
-      deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      deferredPrompt = null;
-      if(choice && choice.outcome === "accepted"){
-        setUi("installed");
-      } else {
-        setUi("not-available");
-      }
-    }catch(_){
-      setUi("not-available");
-    }
-  });
-
-  try{
-    const mm = window.matchMedia("(display-mode: standalone)");
-    if(mm && mm.addEventListener){
-      mm.addEventListener("change", ()=>setUi("not-available"));
-    }
-  }catch(_){}
-})();
-</script>
-
-<!-- Firebase push modul + Firestore + service worker registrácia (v8) -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-<!-- DÔLEŽITÉ: relatívna cesta (GitHub Pages subcesta) -->
-<script src="./bd642_firebase_messaging.js"></script>
-
-<!-- =======================================================
-     BD642: ROBUSTNÁ SW REGISTRÁCIA (FIX pre installability)
-======================================================= -->
-<script>
-(function () {
-  if (!("serviceWorker" in navigator)) return;
-
-  const SW_URL = new URL("./firebase-messaging-sw.js", window.location.href).toString();
-  let didRegister = false;
-
-  async function registerSW() {
-    if (didRegister) return;
-    didRegister = true;
-
-    try {
-      const reg = await navigator.serviceWorker.register(SW_URL, { scope: "./" });
-      console.log("BD642 SW: zaregistrovaný:", reg && reg.scope ? reg.scope : reg);
-
-      try { await reg.update(); } catch(_) {}
-      try {
-        if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
-      } catch(_) {}
-
-      return true;
-    } catch (err) {
-      console.error("BD642 SW: chyba pri registrácii:", err);
-      return false;
-    }
-  }
-
-  window.addEventListener("load", registerSW, { once: true });
-})();
-</script>
+  <!-- Voliteľné: tvoj existujúci modul pre Firebase Messaging -->
+  <!-- <script src="./bd642_firebase_messaging.js"></script> -->
 </body>
 </html>
