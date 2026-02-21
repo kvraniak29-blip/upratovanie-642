@@ -1,5 +1,5 @@
 // firebase-messaging-sw.js
-// BD642 – Service Worker pre FCM (Firebase SDK v8) + PWA installability (stabilné root cesty)
+// BD642 – Service Worker pre FCM (Firebase SDK v8) + PWA installability (stabilné scope-relatívne cesty)
 
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js");
 importScripts("https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js");
@@ -34,7 +34,9 @@ function safeGet(obj, path, defVal) {
 
 function absInScope(relOrAbs) {
   try {
-    var scope = (self.registration && self.registration.scope) ? self.registration.scope : (self.location.origin + "/");
+    var scope = (self.registration && self.registration.scope)
+      ? self.registration.scope
+      : (self.location.origin + "/");
     return new URL(relOrAbs, scope).href;
   } catch (_) {
     return relOrAbs;
@@ -52,6 +54,16 @@ self.addEventListener("activate", function (event) {
   })());
 });
 
+// --- umožniť SKIP_WAITING aj cez postMessage z klienta ---
+self.addEventListener("message", function (event) {
+  try {
+    var t = event && event.data && event.data.type ? String(event.data.type) : "";
+    if (t === "SKIP_WAITING") {
+      try { self.skipWaiting(); } catch (e) {}
+    }
+  } catch (_) {}
+});
+
 // --- PWA installability: fetch handler musí existovať (NO-OP) ---
 self.addEventListener("fetch", function (_event) {});
 
@@ -62,16 +74,17 @@ function showBgNotification(payload) {
     var body  = safeGet(payload, "notification.body", "");
 
     // URL preferuj z data.url (posielaš z Functions)
+    // Default musí byť scope-relatívny (GitHub Pages subcesta)
     var url =
       safeGet(payload, "data.url", null) ||
       safeGet(payload, "data.link", null) ||
       safeGet(payload, "data.click_action", null) ||
       safeGet(payload, "fcmOptions.link", null) ||
-      "/";
+      "./";
 
-    // Root ikony (stabilné)
-    var iconRel  = safeGet(payload, "notification.icon", "/icon-192.png");
-    var badgeRel = safeGet(payload, "notification.badge", "/icon-192.png");
+    // Ikony musia byť scope-relatívne (nie "/icon-192.png"!)
+    var iconRel  = safeGet(payload, "notification.icon", "./icon-192.png");
+    var badgeRel = safeGet(payload, "notification.badge", "./icon-192.png");
 
     var options = {
       body: body,
@@ -98,7 +111,8 @@ self.addEventListener("push", function (event) {
   try {
     if (!event || !event.data) return;
     var data = null;
-    try { data = event.data.json(); } catch (_) { data = { data: { body: event.data.text() } }; }
+    try { data = event.data.json(); }
+    catch (_) { data = { data: { body: event.data.text() } }; }
     event.waitUntil(showBgNotification(data));
   } catch (_) {}
 });
@@ -107,7 +121,7 @@ self.addEventListener("push", function (event) {
 self.addEventListener("notificationclick", function (event) {
   try { event.notification.close(); } catch (e) {}
 
-  var targetUrl = "/";
+  var targetUrl = "./";
   try {
     if (event.notification && event.notification.data && event.notification.data.url) {
       targetUrl = event.notification.data.url;
@@ -115,7 +129,9 @@ self.addEventListener("notificationclick", function (event) {
   } catch (_) {}
 
   try {
-    var scope = (self.registration && self.registration.scope) ? self.registration.scope : (self.location.origin + "/");
+    var scope = (self.registration && self.registration.scope)
+      ? self.registration.scope
+      : (self.location.origin + "/");
     targetUrl = new URL(targetUrl, scope).href;
   } catch (_) {}
 

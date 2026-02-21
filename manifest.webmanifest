@@ -1,12 +1,11 @@
 {
-  "id": "./",
   "name": "Upratovací plánovač BD 642",
   "short_name": "BD642",
   "description": "Harmonogram upratovania BD 642 + lokálne a push upozornenia.",
   "lang": "sk",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
-  "start_url": "./",
+  "start_url": "./?source=pwa",
   "scope": "./",
   "background_color": "#0b1220",
   "theme_color": "#0b1220",
